@@ -36,3 +36,11 @@
     transform: rotate(360deg);
   }
 }
+
+
+.floating-create-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1050;
+}

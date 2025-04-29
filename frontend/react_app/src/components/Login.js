@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { setToken } from "../utils/auth";
+import { setToken, setUser } from "../utils/auth"; // IMPORTANTE
 
 function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -11,10 +11,20 @@ function Login() {
     e.preventDefault();
     try {
       const res = await axios.post("http://localhost:9000/login/", form);
-      setToken(res.data.access);
-      navigate("/dashboard");
+
+      if (res.data && res.data.access) {
+        setToken(res.data.access);
+
+        // Guarda el usuario (por ahora solo el nombre)
+        setUser({ nombre: form.username });
+
+        navigate("/dashboard");
+      } else {
+        alert("No se recibió un token válido. Verifica tus credenciales.");
+      }
     } catch (err) {
-      alert("Credenciales incorrectas");
+      console.error("Error al iniciar sesión:", err);
+      alert("Credenciales incorrectas o error en el servidor.");
     }
   };
 
@@ -51,6 +61,7 @@ function Login() {
                         onChange={(e) =>
                           setForm({ ...form, username: e.target.value })
                         }
+                        required
                       />
                       <label className="form-label" htmlFor="username">
                         Nombre de usuario
@@ -67,13 +78,17 @@ function Login() {
                         onChange={(e) =>
                           setForm({ ...form, password: e.target.value })
                         }
+                        required
                       />
                       <label className="form-label" htmlFor="password">
                         Contraseña
                       </label>
                     </div>
 
-                    <button type="submit" className="btn btn-primary btn-block mb-4 w-100">
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-block mb-4 w-100"
+                    >
                       Iniciar Sesión
                     </button>
 
