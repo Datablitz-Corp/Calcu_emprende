@@ -1,7 +1,24 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, Header
 import httpx
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+
+
+# Reemplaza esto por la misma clave y algoritmo que usas en Django
+SECRET_KEY = "django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#"
+ALGORITHM = "HS256"
+
+
+def obtener_user_id_desde_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print("PAYLOAD DECODIFICADO:", payload)
+        return payload.get("user_id")  # esto debe existir en el payload
+    except JWTError as e:
+        print("❌ ERROR al decodificar token:", e)
+        return None
+
 
 # App
 app = FastAPI()
@@ -18,6 +35,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")  # dummy url para extraer
 
 async def get_user_headers(token: str = Depends(oauth2_scheme)):
     return {"Authorization": f"Bearer {token}"}
+
 
 # GET / POST / DELET
 @app.get("/")
@@ -53,6 +71,9 @@ async def login_user(user_data: dict):
             )
 
 
+
+# ---------------------  Usuario ----------------------
+
 @app.get("/usuario")
 async def get_usuario(headers: dict = Depends(get_user_headers)):
     async with httpx.AsyncClient() as client:
@@ -71,44 +92,58 @@ async def update_usuario(request: Request, headers: dict = Depends(get_user_head
     return response.json()
 
 
-# --------------------- NUEVOS ENDPOINTS PARA NEGOCIOS ----------------------
+# ---------------------  NEGOCIOS ----------------------
 
 @app.get("/negocios/")
-async def listar_negocios(headers: dict = Depends(get_user_headers)):
+async def listar_negocios(authorization: str = Header(...)):
+    #print("HEADER Authorization recibido:", authorization) 
+
+    token = authorization.replace("Bearer ", "")
+    user_id = obtener_user_id_desde_token(token)
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{DJANGO_API_URL}/negocios/", headers=headers)
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+        response = await client.get(
+            f"{DJANGO_API_URL}/negocio/lista/{user_id}/",
+            headers={"Authorization": authorization}
+        )
     return response.json()
 
+
 @app.post("/negocios/")
-async def crear_negocio(negocio_data: dict, headers: dict = Depends(get_user_headers)):
+async def crear_negocio(negocio_data: dict, authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+    user_id = obtener_user_id_desde_token(token)
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    negocio_data["ID_usuario"] = user_id
+
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"{DJANGO_API_URL}/negocios/", json=negocio_data, headers=headers)
+        response = await client.post(
+            f"{DJANGO_API_URL}/negocio/crear/",
+            json=negocio_data,
+            headers={"Authorization": authorization}
+        )
     if response.status_code != 201:
         raise HTTPException(status_code=response.status_code, detail=response.text)
     return response.json()
 
-@app.get("/negocios/{negocio_id}/")
-async def obtener_negocio(negocio_id: int, headers: dict = Depends(get_user_headers)):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{DJANGO_API_URL}/negocios/{negocio_id}/", headers=headers)
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
-    return response.json()
-
-@app.put("/negocios/{negocio_id}/")
-async def actualizar_negocio(negocio_id: int, negocio_data: dict, headers: dict = Depends(get_user_headers)):
-    async with httpx.AsyncClient() as client:
-        response = await client.put(f"{DJANGO_API_URL}/negocios/{negocio_id}/", json=negocio_data, headers=headers)
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
-    return response.json()
 
 @app.delete("/negocios/{negocio_id}/")
 async def eliminar_negocio(negocio_id: int, headers: dict = Depends(get_user_headers)):
     async with httpx.AsyncClient() as client:
-        response = await client.delete(f"{DJANGO_API_URL}/negocios/{negocio_id}/", headers=headers)
-    if response.status_code != 204:
+        response = await client.delete(f"{DJANGO_API_URL}/negocio/eliminar/{negocio_id}/", headers=headers)
+    if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.text)
     return {"detail": "Negocio eliminado"}
+
+
+@app.get("/debug/token/")
+def debug_token(authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+    user_id = obtener_user_id_desde_token(token)
+    return {"user_id": user_id}
