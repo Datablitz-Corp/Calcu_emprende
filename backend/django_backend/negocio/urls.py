@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import NegocioListCreateView, NegocioDetailView
+from .views import CrearNegocioView, ListaNegociosUsuarioView, EliminarNegocioView
 
 urlpatterns = [
-    path('', NegocioListCreateView.as_view(), name='negocio-list-create'),
-    path('<int:pk>/', NegocioDetailView.as_view(), name='negocio-detail'),
+    path('negocio/crear/', CrearNegocioView.as_view(), name='crear_negocio'),
+    path('negocio/lista/<int:user_id>/', ListaNegociosUsuarioView.as_view(), name='listar_negocios'),
+    path('negocio/eliminar/<int:negocio_id>/', EliminarNegocioView.as_view(), name='eliminar_negocio'),
 ]

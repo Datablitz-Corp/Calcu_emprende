@@ -8,6 +8,8 @@ export default function Negocio() {
   const [nombre, setNombre] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [negocioEditando, setNegocioEditando] = useState(null);
 
   useEffect(() => {
     fetchNegocios();
@@ -30,20 +32,31 @@ export default function Negocio() {
       setError("El nombre del negocio es obligatorio.");
       return;
     }
+
     try {
       const token = getToken();
-      await axios.post(
-        "http://localhost:9000/negocios/",
-        { Nombre: nombre },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setNombre("");
-      setError("");
-      setShowModal(false);
+
+      if (modoEdicion && negocioEditando) {
+        // PUT para editar
+        await axios.put(
+          `http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
+          { Nombre: nombre },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        // POST para crear
+        await axios.post(
+          "http://localhost:9000/negocios/",
+          { Nombre: nombre },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      cerrarModal();
       fetchNegocios();
     } catch (e) {
       console.error(e);
-      alert("Error al crear negocio");
+      alert("Error al guardar negocio");
     }
   };
 
@@ -60,6 +73,22 @@ export default function Negocio() {
     }
   };
 
+  const abrirModalEditar = (negocio) => {
+    setModoEdicion(true);
+    setNegocioEditando(negocio);
+    setNombre(negocio.Nombre);
+    setError("");
+    setShowModal(true);
+  };
+
+  const cerrarModal = () => {
+    setShowModal(false);
+    setModoEdicion(false);
+    setNegocioEditando(null);
+    setNombre("");
+    setError("");
+  };
+
   return (
     <Layout>
       <div className="container mt-4">
@@ -74,12 +103,20 @@ export default function Negocio() {
               className="list-group-item d-flex justify-content-between align-items-center"
             >
               {n.Nombre}
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => eliminarNegocio(n.ID_negocio)}
-              >
-                Eliminar
-              </button>
+              <div>
+                <button
+                  className="btn btn-sm btn-warning me-2"
+                  onClick={() => abrirModalEditar(n)}
+                >
+                  Editar
+                </button>
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => eliminarNegocio(n.ID_negocio)}
+                >
+                  Eliminar
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -89,7 +126,9 @@ export default function Negocio() {
           className="btn btn-primary floating-create-button rounded-circle"
           onClick={() => {
             setShowModal(true);
+            setModoEdicion(false);
             setError("");
+            setNombre("");
           }}
         >
           <span style={{ fontSize: "24px", lineHeight: "0" }}>+</span>
@@ -105,11 +144,9 @@ export default function Negocio() {
             }}
           >
             <div className="bg-white p-4 rounded" style={{ width: "400px" }}>
-              <h5>Crear Nuevo Negocio</h5>
+              <h5>{modoEdicion ? "Editar Negocio" : "Crear Nuevo Negocio"}</h5>
 
-              {error && (
-                <div className="alert alert-danger py-2">{error}</div>
-              )}
+              {error && <div className="alert alert-danger py-2">{error}</div>}
 
               <input
                 type="text"
@@ -119,18 +156,11 @@ export default function Negocio() {
                 className="form-control my-3"
               />
               <div className="d-flex justify-content-end">
-                <button
-                  className="btn btn-secondary me-2"
-                  onClick={() => {
-                    setShowModal(false);
-                    setNombre("");
-                    setError("");
-                  }}
-                >
+                <button className="btn btn-secondary me-2" onClick={cerrarModal}>
                   Cancelar
                 </button>
                 <button className="btn btn-success" onClick={crearNegocio}>
-                  Crear
+                  {modoEdicion ? "Actualizar" : "Crear"}
                 </button>
               </div>
             </div>
@@ -138,8 +168,7 @@ export default function Negocio() {
         )}
       </div>
 
-      {/* Estilos para botón flotante */}
-      <style jsx>{`
+      <style>{`
         .floating-create-button {
           position: fixed;
           bottom: 20px;

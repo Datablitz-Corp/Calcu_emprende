@@ -17,5 +17,8 @@ class Negocio(models.Model):
     ID_inversion = models.BigIntegerField(null=True, blank=True)
     Nombre = models.CharField(max_length=100, null=True, blank=True)
 
+    class Meta:
+            db_table = 'negocio'
+
     def __str__(self):
         return self.Nombre or f"Negocio {self.ID_negocio}"
