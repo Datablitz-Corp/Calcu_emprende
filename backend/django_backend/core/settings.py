@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django']
 
 
 # Application definition
@@ -50,6 +50,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'users',
     'negocio',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Aquí pones la URL de tu frontend React
 ]
 
 REST_FRAMEWORK = {
@@ -100,9 +104,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'emprendedores_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
+        'USER': 'django_user',
+        'PASSWORD': 'django_pass',
+        'HOST': 'db',
         'PORT': '3306',
     }
 }
