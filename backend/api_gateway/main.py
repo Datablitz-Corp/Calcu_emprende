@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
 import httpx
+import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -42,20 +43,34 @@ async def get_user_headers(token: str = Depends(oauth2_scheme)):
 def read_root():
     return {"message": "API Gateway funcionando"}
 
-DJANGO_API_URL = "http://localhost:8000/api"
+#DJANGO_API_URL = "http://localhost:8000/api"
+DJANGO_API_URL = "http://django:8000/api"
 
 @app.post("/register/")
 async def register_user(user_data: dict):
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"{DJANGO_API_URL}/register/", json=user_data)
-        
+        try:
+            response = await client.post(f"{DJANGO_API_URL}/register/", json=user_data)
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=500, detail=f"Error de conexión con Django: {exc}")
+
+        # OK: usuario creado
         if response.status_code == 201:
-            return response.json()
-        else:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=response.json()
-            )
+            try:
+                return response.json()
+            except Exception:
+                return {"message": "Usuario creado, pero sin respuesta JSON"}
+
+        # Error controlado desde Django
+        try:
+            error_detail = response.json()
+        except Exception:
+            error_detail = {"error": response.text or "Error desconocido desde Django"}
+
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=error_detail
+        )
 
 @app.post("/login/")
 async def login_user(user_data: dict):
@@ -147,3 +162,6 @@ def debug_token(authorization: str = Header(...)):
     token = authorization.replace("Bearer ", "")
     user_id = obtener_user_id_desde_token(token)
     return {"user_id": user_id}
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=9000, reload=True)

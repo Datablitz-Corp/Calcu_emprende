@@ -43,29 +43,40 @@ function Register() {
         alert("Usuario registrado con éxito");
         navigate("/login");
       }
-    } catch (err) {
-      if (err.response && err.response.data) {
-        if (err.response.data.detail) {
-          setErrors(err.response.data.detail);
-        } else {
-          setErrors({ general: "Error desconocido." });
-        }
-      } else {
-        setErrors({ general: "Error de conexión o del servidor." });
+        } catch (err) {
+          if (err.response && err.response.data) {
+            console.error("Errores del backend:", err.response.data);
+
+            // Transformar errores para que sean strings legibles
+            const backendErrors = err.response.data;
+            const formattedErrors = {};
+
+            Object.entries(backendErrors).forEach(([field, messages]) => {
+              formattedErrors[field] = messages.map(msg => {
+                if (typeof msg === "string") return msg;
+                if (msg && typeof msg.string === "string") return msg.string;
+                return "Error desconocido";
+              });
+            });
+
+            setErrors(formattedErrors); // Guardar errores ya legibles
+          } else {
+            console.error("Error de conexión o del servidor:", err);
+            setErrors({ general: "Error de conexión o del servidor." });
+          }
       }
-    }
   };
   
 
   const renderError = (field) => {
-    if (errors[field]) {
-      return (
-        <div className="text-danger mt-1" style={{ fontSize: "0.875rem" }}>
-          {Array.isArray(errors[field]) ? errors[field][0] : errors[field]}
-        </div>
-      );
-    }
-    return null;
+        if (errors[field]) {
+            return (
+              <div className="alert alert-success mt-1" role="alert" style={{ fontSize: "0.875rem" }}>
+                {errors[field][0]}
+              </div>
+            );
+          }
+          return null;
   };
 
   return (
@@ -87,7 +98,9 @@ function Register() {
 
                   {/* Mostrar error general */}
                   {errors.general && (
-                    <div className="alert alert-danger">{errors.general}</div>
+                    <div className="alert alert-success" role="alert">
+                      {errors.general}
+                    </div>
                   )}
 
                   <form onSubmit={handleSubmit}>
@@ -101,6 +114,7 @@ function Register() {
                         value={form.username}
                         onChange={(e) => setForm({ ...form, username: e.target.value })}
                       />
+                      {errors.username && <p className="error">{errors.username}</p>}
                       <label className="form-label" htmlFor="username">
                         Nombre de usuario
                       </label>
@@ -117,6 +131,7 @@ function Register() {
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
                       />
+                      {errors.email && <p className="error">{errors.email}</p>}
                       <label className="form-label" htmlFor="email">
                         Correo electrónico
                       </label>
@@ -168,7 +183,7 @@ function Register() {
                         }}
                         maxLength={9}
                       />
-
+                      {errors.telefono && <p className="error">{errors.telefono}</p>}
 
                       <label className="form-label" htmlFor="telefono">
                         Teléfono
