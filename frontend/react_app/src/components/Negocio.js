@@ -21,8 +21,7 @@ export default function Negocio() {
       const { data } = await axios.get("http://localhost:9000/negocios/", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("respuesta",data);
-      setNegocios(data.negocios);
+      setNegocios(data);
     } catch (e) {
       console.error(e);
     }
@@ -98,21 +97,28 @@ export default function Negocio() {
         </div>
 
         <ul className="list-group">
-        {negocios.length === 0 ? (
-          <p>No tienes negocios registrados.</p>
-        ) : (
-          <ul className="list-group">
-            {negocios.map((n) => (
-              <li key={n.ID_negocio} className="list-group-item d-flex justify-content-between align-items-center">
-                {n.Nombre}
-                <div>
-                  <button className="btn btn-sm btn-warning me-2" onClick={() => abrirModalEditar(n)}>Editar</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => eliminarNegocio(n.ID_negocio)}>Eliminar</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          {Array.isArray(negocios) && negocios.map((n) => (
+            <li
+              key={n.ID_negocio}
+              className="list-group-item d-flex justify-content-between align-items-center"
+            >
+              {n.Nombre}
+              <div>
+                <button
+                  className="btn btn-sm btn-warning me-2"
+                  onClick={() => abrirModalEditar(n)}
+                >
+                  Editar
+                </button>
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => eliminarNegocio(n.ID_negocio)}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </li>
+          ))}
         </ul>
 
         {/* Botón flotante */}
