@@ -139,7 +139,7 @@ async def crear_negocio(negocio_data: dict, authorization: str = Header(...)):
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"{DJANGO_API_URL}/negocio/crear/",
+            f"{DJANGO_API_URL}/negocio/nuevo/",
             json=negocio_data,
             headers={"Authorization": authorization}
         )
