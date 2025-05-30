@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { getToken } from "../utils/auth";
 import Layout from "./Layout";
 import axios from "axios";
+import { jwtDecode } from 'jwt-decode';
+
 
 export default function Negocio() {
   const [negocios, setNegocios] = useState([]);
@@ -10,7 +12,7 @@ export default function Negocio() {
   const [error, setError] = useState("");
   const [modoEdicion, setModoEdicion] = useState(false);
   const [negocioEditando, setNegocioEditando] = useState(null);
-  
+
   const [productos, setProductos] = useState([]);
 
   const [capitalPropio, setCapitalPropio] = useState("");
@@ -33,7 +35,7 @@ export default function Negocio() {
   };
 
   const eliminarProducto = (index) => {
-  setProductos((prev) => prev.filter((_, i) => i !== index));
+    setProductos((prev) => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -61,28 +63,52 @@ export default function Negocio() {
     try {
       const token = getToken();
 
+      const decodedToken = jwtDecode(token);
+      console.log(decodedToken);
+      const idUsuario = decodedToken.user_id; 
+    
+    // Crear el arreglo de costos por ahora
+      const costos = [
+        { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
+        { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
+      ];
+
       const payload = {
-        Nombre: nombre,
-        capital_propio: capitalPropio,
-        monto_prestamo: montoPrestamo,
-        interes_anual: interesPrestamo,
-        costos_fijos: costosFijos,
-        costos_variables: costosVariables,
-        productos: productos,
+        id_usuario: idUsuario,
+        nombre_negocio: nombre,
+        capital_propio: parseFloat(capitalPropio) || 0,
+        prestamo: parseFloat(montoPrestamo) || 0,
+        interes: parseFloat(interesPrestamo) || 0,
+        costos: costos, // costos debe ser un array con objetos tipo { tipo, monto }
+        productos: productos.map(p => ({
+          nombre: p.nombre,
+          precv: parseFloat(p.precio) || 0,
+          costov: parseFloat(p.costo) || 0,
+          cantidad: parseInt(p.cantidad) || 0,
+        })),
       };
 
+
+      console.log("Datos a enviar:", payload); // <-- Aquí muestras los datos que se enviarán
+
+
       if (modoEdicion && negocioEditando) {
+        // Editar negocio existente
         await axios.put(
           `http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        console.log(`Negocio con ID ${negocioEditando.ID_negocio} actualizado exitosamente.`);
+    
       } else {
+        // Crear nuevo negocio
         await axios.post(
           "http://localhost:9000/negocios/",
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        console.log("Nuevo negocio creado exitosamente.");
       }
 
       cerrarModal();
@@ -92,7 +118,6 @@ export default function Negocio() {
       alert("Error al guardar negocio");
     }
   };
-
 
   const eliminarNegocio = async (id) => {
     try {
@@ -111,6 +136,12 @@ export default function Negocio() {
     setModoEdicion(true);
     setNegocioEditando(negocio);
     setNombre(negocio.Nombre);
+    setCapitalPropio(negocio.capital_propio);
+    setMontoPrestamo(negocio.monto_prestamo);
+    setInteresPrestamo(negocio.interes_anual);
+    setCostosFijos(negocio.costos_fijos);
+    setCostosVariables(negocio.costos_variables);
+    setProductos(negocio.productos || []);
     setError("");
     setShowModal(true);
   };
@@ -137,220 +168,233 @@ export default function Negocio() {
         </div>
 
         <ul className="list-group">
-          {Array.isArray(negocios) && negocios.map((n) => (
-            <li
-              key={n.ID_negocio}
-              className="list-group-item d-flex justify-content-between align-items-center"
-            >
-              {n.Nombre}
-              <div>
-                <button
-                  className="btn btn-sm btn-warning me-2"
-                  onClick={() => abrirModalEditar(n)}
-                >
-                  Editar
-                </button>
-                <button
-                  className="btn btn-sm btn-danger"
-                  onClick={() => eliminarNegocio(n.ID_negocio)}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </li>
-          ))}
+          {Array.isArray(negocios) &&
+            negocios.map((n) => (
+              <li
+                key={n.ID_negocio}
+                className="list-group-item d-flex justify-content-between align-items-center"
+              >
+                {n.Nombre}
+                <div>
+                  <button
+                    className="btn btn-sm btn-warning me-2"
+                    onClick={() => abrirModalEditar(n)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => eliminarNegocio(n.ID_negocio)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </li>
+            ))}
         </ul>
 
         {/* Botón flotante */}
-          <button
-            className="btn btn-primary"
-            style={{
-              position: "fixed",
-              bottom: "20px",
-              right: "20px",
-              zIndex: 1100,
-              padding: "12px 20px",
-              fontSize: "16px",
-              borderRadius: "8px",
-            }}
-            onClick={() => {
-              setShowModal(true);
-              setModoEdicion(false);
-              setError("");
-              setNombre("");
-            }}
-          >
-            Agregar Negocio
-          </button> 
-
+        <button
+          className="btn btn-primary"
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            zIndex: 1100,
+            padding: "12px 20px",
+            fontSize: "16px",
+            borderRadius: "8px",
+          }}
+          onClick={() => {
+            setShowModal(true);
+            setModoEdicion(false);
+            setError("");
+            setNombre("");
+          }}
+        >
+          Agregar Negocio
+        </button>
 
         {/* Modal */}
-          {showModal && (
+        {showModal && (
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+            style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
+          >
             <div
-              className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-              style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
+              className="bg-white p-4 rounded"
+              style={{
+                width: "90%",
+                maxWidth: "900px",
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }}
             >
-              <div
-                className="bg-white p-4 rounded"
-                style={{
-                  width: "90%",
-                  maxWidth: "900px",
-                  maxHeight: "90vh",
-                  overflowY: "auto",
-                }}
-              >
-                <h4 className="fw-bold text-center mb-4">
-                  {modoEdicion ? "Editar Negocio" : "Crear Nuevo Negocio"}
-                </h4>
+              <h4 className="fw-bold text-center mb-4">
+                {modoEdicion ? "Editar Negocio" : "Crear Nuevo Negocio"}
+              </h4>
 
-                {error && <div className="alert alert-danger py-2">{error}</div>}
+              {error && <div className="alert alert-danger py-2">{error}</div>}
 
-                {/* Nombre del negocio */}
-                <div className="mb-4">
-                  <h6 className="fw-bold">Nombre del Negocio</h6>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                  />
-                </div>
+              {/* Nombre del negocio */}
+              <div className="mb-4">
+                <h6 className="fw-bold">Nombre del Negocio</h6>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                />
+              </div>
 
-                {/* Segmento de inversión */}
-                <div className="mb-4">
-                  <h6 className="fw-bold">Inversión</h6>
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label>Capital propio</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={capitalPropio}
-                        onChange={(e) => setCapitalPropio(e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label>Monto préstamo</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={montoPrestamo}
-                        onChange={(e) => setMontoPrestamo(e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label>Interés del préstamo (%)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="form-control"
-                        value={interesPrestamo}
-                        onChange={(e) => setInteresPrestamo(e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label>Costos fijos</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={costosFijos}
-                        onChange={(e) => setCostosFijos(e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label>Costos variables</label>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={costosVariables}
-                        onChange={(e) => setCostosVariables(e.target.value)}
-                      />
-                    </div>
+              {/* Inversión */}
+              <div className="mb-4">
+                <h6 className="fw-bold">Inversión</h6>
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label>Capital propio</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={capitalPropio}
+                      onChange={(e) => setCapitalPropio(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label>Monto préstamo</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={montoPrestamo}
+                      onChange={(e) => setMontoPrestamo(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label>Interés del préstamo (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="form-control"
+                      value={interesPrestamo}
+                      onChange={(e) => setInteresPrestamo(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label>Costos fijos</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={costosFijos}
+                      onChange={(e) => setCostosFijos(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label>Costos variables</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={costosVariables}
+                      onChange={(e) => setCostosVariables(e.target.value)}
+                    />
                   </div>
                 </div>
+              </div>
 
-                {/* Segmento de productos o servicios */}
-                <div className="mb-4">
-                  <h6 className="fw-bold">Productos o Servicios</h6>
-
-                  {productos.map((p, index) => (
-                    <div key={index} className="border p-3 mb-3 rounded">
-                      <div className="row">
-                        <div className="col-md-6 mb-2">
-                          <label>Nombre</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={p.nombre}
-                            onChange={(e) => actualizarProducto(index, "nombre", e.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-6 mb-2">
-                          <label>Precio de venta</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="form-control"
-                            value={p.precio}
-                            onChange={(e) => actualizarProducto(index, "precio", e.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-6 mb-2">
-                          <label>Costo unitario</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="form-control"
-                            value={p.costo}
-                            onChange={(e) => actualizarProducto(index, "costo", e.target.value)}
-                          />
-                        </div>
-                        <div className="col-md-6 mb-2">
-                          <label>Cantidad esperada</label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            value={p.cantidad}
-                            onChange={(e) => actualizarProducto(index, "cantidad", e.target.value)}
-                          />
-                        </div>
-                        <div className="d-flex justify-content-end">
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            type="button"
-                            onClick={() => eliminarProducto(index)}
-                          >
-                            Eliminar
-                          </button>
-                        </div>
+              {/* Productos */}
+              <div className="mb-4">
+                <h6 className="fw-bold">Productos o Servicios</h6>
+                {productos.map((p, index) => (
+                  <div key={index} className="border p-3 mb-3 rounded">
+                    <div className="row">
+                      <div className="col-md-6 mb-2">
+                        <label>Nombre</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={p.nombre}
+                          onChange={(e) =>
+                            actualizarProducto(index, "nombre", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="col-md-6 mb-2">
+                        <label>Precio de venta</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          value={p.precio}
+                          onChange={(e) =>
+                            actualizarProducto(index, "precio", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="col-md-6 mb-2">
+                        <label>Costo unitario</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          value={p.costo}
+                          onChange={(e) =>
+                            actualizarProducto(index, "costo", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="col-md-6 mb-2">
+                        <label>Cantidad esperada</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          value={p.cantidad}
+                          onChange={(e) =>
+                            actualizarProducto(index, "cantidad", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="d-flex justify-content-end">
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          type="button"
+                          onClick={() => eliminarProducto(index)}
+                        >
+                          Eliminar
+                        </button>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
 
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary w-100"
-                    onClick={agregarProducto}
-                  >
-                    Agregar Producto o Servicio
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary w-100"
+                  onClick={agregarProducto}
+                >
+                  Agregar Producto o Servicio
+                </button>
+              </div>
 
-                {/* Botones finales */}
-                <div className="d-flex justify-content-end mt-3">
-                  <button className="btn btn-secondary me-2" onClick={cerrarModal}>
-                    Cancelar
-                  </button>
-                  <button className="btn btn-success" onClick={crearNegocio}>
-                    {modoEdicion ? "Actualizar" : "Crear"}
-                  </button>
-                </div>
+              {/* Botones de acción */}
+              <div className="d-flex justify-content-end gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cerrarModal}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={crearNegocio}
+                >
+                  {modoEdicion ? "Guardar cambios" : "Crear Negocio"}
+                </button>
               </div>
             </div>
-          )}
-
+          </div>
+        )}
       </div>
-
     </Layout>
   );
 }
