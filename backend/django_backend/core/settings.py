@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'users',
     'negocio',
+    'costos',
+    'inversion',
+    'producto_servicio',
 ]
 
 CORS_ALLOWED_ORIGINS = [
