@@ -1,6 +1,7 @@
 services:
   db:
-    image: mariadb:10.11
+    image: maria_image:tag
+    pull_policy: never
     container_name: mariadb-db
     restart: always
     environment:
@@ -14,10 +15,10 @@ services:
       - db_data:/var/lib/mysql
 
   django:
-    build:
-      context: .
-      dockerfile: Dockerfile.django
-    ports:  
+    image: django_image:tag
+    pull_policy: never
+    container_name: django-backend
+    ports:
       - "8000:8000"
     depends_on:
       - db
@@ -28,25 +29,30 @@ services:
       MYSQL_HOST: db
       DEBUG: "True"
       ALLOWED_HOSTS: "*"
-    command: >
-      sh -c "/app/wait-for-it.sh db:3306 -- python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend/django_backend:/app
 
   fastapi:
-    build:
-      context: .
-      dockerfile: Dockerfile.fastapi
+    image: fastapi_image:tag
+    pull_policy: never
+    container_name: fastapi-gateway
     ports:
       - "9000:9000"
     depends_on:
       - db
+    volumes:
+      - ./backend/api_gateway:/app
 
   react:
-    build:
-      context: .
-      dockerfile: Dockerfile.react
+    image: react_image:tag
+    pull_policy: never
+    container_name: react-frontend
     ports:
       - "3000:3000"
+    environment:
+      - REACT_APP_BACKEND_URL=http://django:8000
+    volumes:
+      - ./frontend/react_app:/app
 
 volumes:
   db_data:

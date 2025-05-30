@@ -10,7 +10,7 @@ class Negocio(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="negocios",
+        related_name="negocio",
         db_column="ID_usuario"
     )
     ID_costo = models.BigIntegerField(null=True, blank=True)
