@@ -50,7 +50,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
     # Descomenta esta línea si necesitas montar código localmente
     # volumes:
     #   - ./frontend/react_app:/app
