@@ -19,7 +19,13 @@ function Cuenta() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:9000/usuario", {
+
+
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+
+        //const res = await axios.get("http://localhost:9000/usuario", {
+        const res = await axios.get(`${api}/usuario`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -39,7 +45,12 @@ function Cuenta() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put("http://localhost:9000/usuario", form, {
+
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+      //axios.post(`${api}/register`, data)
+      
+      //await axios.put("http://localhost:9000/usuario", form, {
+      await axios.put(`${api}/usuario/`, form, {
         headers: {
           Authorization: `Bearer ${token}`
         }

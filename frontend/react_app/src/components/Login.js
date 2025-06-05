@@ -10,7 +10,10 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:9000/login/", form);
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+      //axios.post(`${api}/register`, data)
+      const res = await axios.post(`${api}/login/`, form);
+      //const res = await axios.post("http://localhost:9000/login/", form);
 
       if (res.data && res.data.access) {
         setToken(res.data.access);

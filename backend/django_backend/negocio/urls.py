@@ -8,4 +8,3 @@ urlpatterns = [
     path('negocio/eliminar/<int:negocio_id>/', EliminarNegocioView.as_view(), name='eliminar_negocio'),
 ]
 
-# hola

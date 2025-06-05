@@ -1,1 +1,5 @@
 *.tar
+.env
+ec2-user@*
+emprendedores_data.tar.gz
+emprendedores.sql

@@ -45,7 +45,11 @@ export default function Negocio() {
   const fetchNegocios = async () => {
     try {
       const token = getToken();
-      const { data } = await axios.get("http://localhost:9000/negocios/", {
+
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+      //const { data } = await axios.get("http://localhost:9000/negocios/", {
+      const { data } = await axios.get(`${api}/negocios/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNegocios(data);
@@ -92,10 +96,14 @@ export default function Negocio() {
       console.log("Datos a enviar:", payload); // <-- Aquí muestras los datos que se enviarán
 
 
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+
       if (modoEdicion && negocioEditando) {
         // Editar negocio existente
         await axios.put(
-          `http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
+          //`http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
+          `${api}/negocios/${negocioEditando.ID_negocio}/`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -103,8 +111,12 @@ export default function Negocio() {
     
       } else {
         // Crear nuevo negocio
+
+
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
         await axios.post(
-          "http://localhost:9000/negocios/",
+          `${api}/negocios/`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
