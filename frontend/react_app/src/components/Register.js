@@ -35,7 +35,10 @@ function Register() {
     }
     
     try {
-      const response = await axios.post("http://localhost:9000/register/", form, {
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+  
+      //const response = await axios.post("http://localhost:9000/register/", form, {
+      const response = await axios.post(`${api}/register/`, form, {
         headers: {
           'Content-Type': 'application/json',
         },

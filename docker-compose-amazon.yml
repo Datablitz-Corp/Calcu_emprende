@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  db:
+    image: maria:tag
+    container_name: mariadb-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: emprendedores_db
+      MYSQL_USER: django_user
+      MYSQL_PASSWORD: django_pass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  django:
+    image: django:tag
+    container_name: django-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      MYSQL_DATABASE: emprendedores_db
+      MYSQL_USER: django_user
+      MYSQL_PASSWORD: django_pass
+      MYSQL_HOST: db
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+    # Descomenta esta línea si necesitas montar código localmente
+    # volumes:
+    #   - ./backend/django_backend:/app
+
+  fastapi:
+    image: fastapi:tag
+    container_name: fastapi-gateway
+    ports:
+      - "9000:9000"
+    depends_on:
+      - db
+    # Descomenta esta línea si necesitas montar código localmente
+    # volumes:
+    #   - ./backend/api_gateway:/app
+
+  react:
+    image: react:tag
+    container_name: react-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+    # Descomenta esta línea si necesitas montar código localmente
+    # volumes:
+    #   - ./frontend/react_app:/app
+
+volumes:
+  db_data:
