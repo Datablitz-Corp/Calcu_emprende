@@ -29,7 +29,8 @@ services:
       MYSQL_HOST: db
       DEBUG: "True"
       ALLOWED_HOSTS: "*"
-    # Descomenta esta línea si necesitas montar código localmente
+    env_file:
+      - .env
     # volumes:
     #   - ./backend/django_backend:/app
 
@@ -40,7 +41,10 @@ services:
       - "9000:9000"
     depends_on:
       - db
-    # Descomenta esta línea si necesitas montar código localmente
+    environment:
+      - FRONTEND_URL=${FRONTEND_URL}  # Aquí se pasa la variable desde .env
+    env_file:
+      - .env
     # volumes:
     #   - ./backend/api_gateway:/app
 
@@ -51,7 +55,8 @@ services:
       - "3000:3000"
     environment:
       - REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
-    # Descomenta esta línea si necesitas montar código localmente
+    env_file:
+      - .env
     # volumes:
     #   - ./frontend/react_app:/app
 

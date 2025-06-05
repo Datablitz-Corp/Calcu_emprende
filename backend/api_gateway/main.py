@@ -4,7 +4,10 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # Reemplaza esto por la misma clave y algoritmo que usas en Django
 SECRET_KEY = "django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#"
@@ -17,21 +20,22 @@ def obtener_user_id_desde_token(token: str):
         print("PAYLOAD DECODIFICADO:", payload)
         return payload.get("user_id")  # esto debe existir en el payload
     except JWTError as e:
-        print("❌ ERROR al decodificar token:", e)
+        print("ERROR al decodificar token:", e)
         return None
 
 
 # App
 app = FastAPI()
 
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")  # default opcional
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # tu frontend
+    allow_origins=[frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")  # dummy url para extraer token
 
 async def get_user_headers(token: str = Depends(oauth2_scheme)):
