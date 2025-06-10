@@ -9,16 +9,12 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 from pathlib import Path
-from decouple import Config, RepositoryEnv
-import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Cargar .env desde la raíz
-env_path = BASE_DIR / '.env'
-config = Config(repository=RepositoryEnv(env_path))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -27,8 +23,7 @@ config = Config(repository=RepositoryEnv(env_path))
 SECRET_KEY = 'django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django']
 
@@ -110,12 +105,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE'),
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'emprendedores_db',
+        'USER': 'django_user',
+        'PASSWORD': 'django_pass',
+        'HOST': 'db',
+        'PORT': '3306',
     }
 }
 

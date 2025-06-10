@@ -1,34 +1,26 @@
 FROM python:3.10-slim
 
-# Instalar las dependencias necesarias, incluyendo iputils-ping y mariadb-client
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
     pkg-config \
-    mariadb-client \
     iputils-ping \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Establecer el directorio de trabajo dentro del contenedor
+# Establecer directorio de trabajo
 WORKDIR /app
 
-RUN pip install mysqlclient
-# Copiar el archivo de requisitos de backend y luego instalar las dependencias de Python
+# Copiar y instalar dependencias de Python
 COPY backend/requirements_backend.txt .
 RUN pip install --no-cache-dir -r requirements_backend.txt
 
-
-# Copiar el código fuente del backend (Django)
+# Copiar el código fuente del backend (incluyendo manage.py)
 COPY backend/django_backend /app
 
-# Copiar y dar permisos al script wait-for-it.sh
-COPY wait-for-it.sh /app/wait-for-it.sh
-RUN chmod +x /app/wait-for-it.sh
-
-# Exponer el puerto 8000 para que sea accesible desde fuera del contenedor
+# Exponer el puerto 8000
 EXPOSE 8000
 
-# Comando de inicio: espera que la base de datos esté disponible y luego ejecuta las migraciones y el servidor de Django
-CMD ["sh", "-c", "/app/wait-for-it.sh db:3306 -- python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
-
+# Comando por defecto al arrancar el contenedor
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
