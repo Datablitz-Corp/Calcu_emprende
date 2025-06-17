@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 from pathlib import Path
-from decouple import Config, RepositoryEnv
+from decouple import Config, RepositoryEnv, Csv
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#
 #DEBUG = True
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django', os.getenv('APP_HOST'),'django-backend','fastapi-gateway']
 
 
 # Application definition
@@ -60,9 +60,10 @@ INSTALLED_APPS = [
     'producto_servicio',
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Aquí pones la URL de tu frontend React
-]
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    cast=Csv(),  # Esto lo convierte en una lista
+)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -108,6 +109,14 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# Manejo correcto de CONN_MAX_AGE
+raw_conn_max_age = config("CONN_MAX_AGE", default="0")  # default como string
+if raw_conn_max_age == "None":
+    conn_max_age = None
+else:
+    conn_max_age = int(raw_conn_max_age)
+
+# Configuración de base de datos
 DATABASES = {
     'default': {
         'ENGINE': config('DB_ENGINE'),
@@ -116,6 +125,10 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD'),
         'HOST': config('DB_HOST'),
         'PORT': config('DB_PORT'),
+        'CONN_MAX_AGE': conn_max_age,
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
     }
 }
 
