@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import TermsModal from "../components/TermsModal";
+import TermsModal from "./TermsModal";
 
 function Register() {
   const [form, setForm] = useState({
@@ -12,63 +12,12 @@ function Register() {
     latitud: "",
     longitud: ""
   });
-
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
   
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      const confirmed = window.confirm(
-        "Este formulario solicitará acceso a tu ubicación para registrar su ubicación. ¿Deseas continuar?"
-      );
-      if (confirmed) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setForm((prevForm) => ({
-              ...prevForm,
-              latitud: position.coords.latitude.toString(),
-              longitud: position.coords.longitude.toString(),
-            }));
-          },
-          (error) => {
-            console.error("Error al obtener la ubicación:", error);
-            setForm((prevForm) => ({
-              ...prevForm,
-              latitud: "0",
-              longitud: "0"
-            }));
-            setErrors((prev) => ({
-              ...prev,
-              general: "No se pudo obtener tu ubicación. Se establecerá en 0."
-            }));
-          }
-        );
-      } else {
-        setForm((prevForm) => ({
-          ...prevForm,
-          latitud: "0",
-          longitud: "0"
-        }));
-      }
-    } else {
-      setForm((prevForm) => ({
-        ...prevForm,
-        latitud: "0",
-        longitud: "0"
-      }));
-      setErrors((prev) => ({
-        ...prev,
-        general: "Tu navegador no soporta geolocalización. Se establecerá en 0."
-      }));
-    }
-  }, []);
-
-
-
-
+  const [successMessage, setSuccessMessage] = useState("");
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({}); // Limpiar errores anteriores
@@ -271,7 +220,7 @@ function Register() {
     className="form-control form-control-lg"
     placeholder="Tu latitud"
     value={form.latitud}
-    readOnly
+    onChange={(e) => setForm({ ...form, latitud: e.target.value })}
     />
     <label className="form-label" htmlFor="latitud">
     Latitud
@@ -287,7 +236,7 @@ function Register() {
     className="form-control form-control-lg"
     placeholder="Tu longitud"
     value={form.longitud}
-    readOnly
+    onChange={(e) => setForm({ ...form, longitud: e.target.value })}
     />
     <label className="form-label" htmlFor="longitud">
     Longitud
@@ -295,7 +244,7 @@ function Register() {
     {renderError('longitud')}
     </div>
     
-    {/* términos y Condiciones*/}
+    {/* Checkbox términos */}
     <div className="form-check d-flex justify-content-center mb-5">
     <input
     className="form-check-input me-2"

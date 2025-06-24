@@ -9,7 +9,6 @@ services:
     env_file:
       - .env
     volumes:
-      - ./backend/django_backend:/app
       - ./.env:/app/.env  # Monta el archivo .env dentro del contenedor
 
   fastapi:
