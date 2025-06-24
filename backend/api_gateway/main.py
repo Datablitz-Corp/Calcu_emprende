@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 
@@ -48,7 +49,7 @@ def read_root():
     return {"message": "API Gateway funcionando"}
 
 #DJANGO_API_URL = "http://localhost:8000/api"
-DJANGO_API_URL = "http://django:8000/api"
+DJANGO_API_URL = "http://django:8000/"
 
 @app.post("/register/")
 async def register_user(user_data: dict):
@@ -77,17 +78,17 @@ async def register_user(user_data: dict):
         )
 
 @app.post("/login/")
-async def login_user(user_data: dict):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(f"{DJANGO_API_URL}/login/", json=user_data)
-        
+async def login_user(data: dict):
+    try:
+        response = requests.post("http://django:8000/login/", json=data)
         if response.status_code == 200:
             return response.json()
         else:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=response.json()
-            )
+            print("Respuesta desde Django (no 200):", response.text)
+            raise HTTPException(status_code=response.status_code, detail="Error al autenticar")
+    except requests.exceptions.RequestException as e:
+        print("Error de conexión con Django:", str(e))
+        raise HTTPException(status_code=500, detail="No se pudo conectar al backend Django")
 
 
 
@@ -169,3 +170,11 @@ def debug_token(authorization: str = Header(...)):
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=9000, reload=True)
+
+@app.get("/detalle-negocio/{negocio_id}")
+async def get_negocio_detalle(negocio_id: int, headers: dict = Depends(get_user_headers)):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{DJANGO_API_URL}/detalle-negocio/{negocio_id}/", headers=headers)
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    return response.json()

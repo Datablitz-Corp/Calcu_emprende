@@ -9,16 +9,12 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
 from pathlib import Path
-from decouple import Config, RepositoryEnv, Csv
-import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Cargar .env desde la raíz
-env_path = BASE_DIR / '.env'
-config = Config(repository=RepositoryEnv(env_path))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -27,10 +23,9 @@ config = Config(repository=RepositoryEnv(env_path))
 SECRET_KEY = 'django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django', os.getenv('APP_HOST'),'django-backend','fastapi-gateway']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django']
 
 
 # Application definition
@@ -60,10 +55,9 @@ INSTALLED_APPS = [
     'producto_servicio',
 ]
 
-CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS",
-    cast=Csv(),  # Esto lo convierte en una lista
-)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Aquí pones la URL de tu frontend React
+]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -109,26 +103,14 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Manejo correcto de CONN_MAX_AGE
-raw_conn_max_age = config("CONN_MAX_AGE", default="0")  # default como string
-if raw_conn_max_age == "None":
-    conn_max_age = None
-else:
-    conn_max_age = int(raw_conn_max_age)
-
-# Configuración de base de datos
 DATABASES = {
     'default': {
-        'ENGINE': config('DB_ENGINE'),
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
-        'CONN_MAX_AGE': conn_max_age,
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'emprendedores_db',
+        'USER': 'django_user',
+        'PASSWORD': 'django_pass',
+        'HOST': 'db',
+        'PORT': '3306',
     }
 }
 

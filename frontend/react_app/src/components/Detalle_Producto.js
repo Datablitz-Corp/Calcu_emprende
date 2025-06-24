@@ -188,10 +188,12 @@ export default function Negocio() {
               >
                 {n.Nombre}
                 <div>
-
-
-                  <button onClick={() => navigate(`/detalle/${negocioId}`)}>Detalle</button>
-
+                  <button
+                    className="btn btn-sm btn-warning me-2"
+                    //onClick={() => abrirModalEditar(n)}
+                  >
+                    Detalle
+                  </button>
                   <button
                     className="btn btn-sm btn-warning me-2"
                     onClick={() => abrirModalEditar(n)}
