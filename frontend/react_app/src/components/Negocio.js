@@ -3,6 +3,7 @@ import { getToken } from "../utils/auth";
 import Layout from "./Layout";
 import axios from "axios";
 import { jwtDecode } from 'jwt-decode';
+import { useNavigate } from "react-router-dom";
 
 
 export default function Negocio() {
@@ -20,6 +21,8 @@ export default function Negocio() {
   const [interesPrestamo, setInteresPrestamo] = useState("");
   const [costosFijos, setCostosFijos] = useState("");
   const [costosVariables, setCostosVariables] = useState("");
+
+  const navigate = useNavigate();
 
   const agregarProducto = () => {
     setProductos([
@@ -190,7 +193,12 @@ export default function Negocio() {
                 <div>
 
 
-                  <button onClick={() => navigate(`/detalle/${negocioId}`)}>Detalle</button>
+                  <button
+                    className="btn btn-sm btn-info me-2"
+                    onClick={() => navigate(`/detalle/${n.ID_negocio}`)}
+                  >
+                    Detalle
+                  </button>
 
                   <button
                     className="btn btn-sm btn-warning me-2"
