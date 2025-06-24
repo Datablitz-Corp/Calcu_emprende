@@ -170,3 +170,11 @@ def debug_token(authorization: str = Header(...)):
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=9000, reload=True)
+
+@app.get("/detalle-negocio/{negocio_id}")
+async def get_negocio_detalle(negocio_id: int, headers: dict = Depends(get_user_headers)):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{DJANGO_API_URL}/detalle-negocio/{negocio_id}/", headers=headers)
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    return response.json()

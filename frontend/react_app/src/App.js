@@ -8,6 +8,7 @@ import OpcionesCredito from "./pages/OpcionesCredito";
 import Asesoria from "./pages/Asesoria";
 import Resultado from "./pages/Resultado";
 import Configuracion from "./pages/Configuracion";
+import DetalleNegocio from "./pages/DetalleNegocio";
 
 
 function App() {
@@ -23,8 +24,11 @@ function App() {
         <Route path="/resultado" element={<Resultado />} />
         <Route path="/configuracion" element={<Configuracion />} />
         <Route path="/credito" element={<OpcionesCredito />} />
+        <Route path="/detalle/:negocioId" element={<DetalleNegocio />} />
+
       </Routes>
     </Router>
+    
   );
 }
 

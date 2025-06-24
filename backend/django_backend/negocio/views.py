@@ -1,11 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.generics import RetrieveAPIView
 from rest_framework import status
 from django.db import connection
 from .models import Negocio
 from .serializers import NegocioSerializer
 import json
-
+from django.http import JsonResponse
 
 # app/views.py
 from rest_framework.views import APIView
@@ -75,6 +76,21 @@ class ListaNegociosUsuarioView(APIView):
             return Response(results, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+## negico = 1 
+class NegocioDetalleAPIView(APIView):
+    def get(self, request, negocio_id):
+        with connection.cursor() as cursor:
+            cursor.callproc("sp_resumen_negocio_json", [negocio_id])
+            result = cursor.fetchall()
+
+            # Obtener los nombres de columnas
+            columns = [col[0] for col in cursor.description]
+            data = [dict(zip(columns, row)) for row in result]
+
+        return Response(data[0] if data else {})
+    
 
 class EliminarNegocioView(APIView):
     def delete(self, request, negocio_id):
