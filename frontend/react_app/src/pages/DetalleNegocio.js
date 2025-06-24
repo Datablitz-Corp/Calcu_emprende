@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import Layout from "./Layout";
+import Layout from "../components/Layout";
 
 function DetalleNegocio() {
   const { negocioId } = useParams();
