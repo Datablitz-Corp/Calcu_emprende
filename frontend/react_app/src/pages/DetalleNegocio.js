@@ -65,12 +65,11 @@ function DetalleNegocio() {
 
         <h4 className="mt-4">Productos / Servicios:</h4>
 
-        <pre>{JSON.stringify(negocio.productos, null, 2)}</pre>  {/* verr */}
+         {/* <pre>{JSON.stringify(negocio.productos, null, 2)}</pre>  */}
 
-
-        {Array.isArray(negocio.productos) && negocio.productos.length > 0 ? (
+        {Array.isArray(JSON.parse(negocio.productos)) && JSON.parse(negocio.productos).length > 0 ? (
           <ul className="list-group">
-            {negocio.productos.map((prod, index) => (
+            {JSON.parse(negocio.productos).map((prod, index) => (
               <li key={index} className="list-group-item">
                 <strong>{prod.nombre_producto_servicio}</strong> — Precio: {prod.precio_venta}, Costo: {prod.costo_unitario}, Cantidad: {prod.cantidad_esperada}
               </li>
@@ -79,6 +78,8 @@ function DetalleNegocio() {
         ) : (
           <p>No hay productos registrados.</p>
         )}
+
+
       </div>
     </Layout>
   );
