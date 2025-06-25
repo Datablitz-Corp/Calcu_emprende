@@ -60,7 +60,8 @@ class CrearNegocioView(APIView):
 
         try:
             with connection.cursor() as cursor:
-                cursor.callproc('sp_insertar_negocio', [user_id, nombre])
+                # sp_insertar_negocio_y_generar_resultados, sp_insertar_negocio
+                cursor.callproc('sp_insertar_negocio_y_generar_resultados', [user_id, nombre])
             return Response({"message": "Negocio creado con éxito"}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
