@@ -64,6 +64,10 @@ function DetalleNegocio() {
         <p><strong>TIR:</strong> {negocio.TIR}</p>
 
         <h4 className="mt-4">Productos / Servicios:</h4>
+
+        <pre>{JSON.stringify(negocio.productos, null, 2)}</pre>  {/* verr */}
+
+
         {Array.isArray(negocio.productos) && negocio.productos.length > 0 ? (
           <ul className="list-group">
             {negocio.productos.map((prod, index) => (
