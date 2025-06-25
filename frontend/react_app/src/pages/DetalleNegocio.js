@@ -8,7 +8,7 @@ function DetalleNegocio() {
   const { negocioId } = useParams();
   const [negocio, setNegocio] = useState(null);
   const [error, setError] = useState(null);
-  const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000"; // <- usa la misma base
+  const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
   useEffect(() => {
     const fetchDetalle = async () => {
@@ -31,10 +31,24 @@ function DetalleNegocio() {
     };
 
     fetchDetalle();
-  }, [negocioId]);
+  }, [negocioId, api]); 
+  
+  if (error)
+    return (
+      <Layout>
+        <div className="alert alert-danger">{error}</div>
+      </Layout>
+    );
 
-  if (error) return <Layout><div className="alert alert-danger">{error}</div></Layout>;
-  if (!negocio) return <Layout><div>Cargando...</div></Layout>;
+  if (!negocio)
+    return (
+      <Layout>
+        <div>Cargando...</div>
+      </Layout>
+    );
+
+    console.log("Datos negocio:", negocio);
+    console.log("Productos:", negocio.productos);
 
   return (
     <Layout>
