@@ -47,6 +47,9 @@ function DetalleNegocio() {
       </Layout>
     );
 
+    console.log("Datos negocio:", negocio);
+    console.log("Productos:", negocio.productos);
+
   return (
     <Layout>
       <div className="container mt-4">

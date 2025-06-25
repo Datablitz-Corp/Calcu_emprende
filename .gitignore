@@ -3,3 +3,6 @@
 ec2-user@*
 emprendedores_data.tar.gz
 emprendedores.sql
+# Ignorar entorno virtual
+backend/venv/
+
