@@ -55,6 +55,8 @@ export default function Negocio() {
       const { data } = await axios.get(`${api}/negocios/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("🔎 Respuesta del backend:", data); // 👈 Este log mostrará TODO
+      
       setNegocios(data);
     } catch (e) {
       console.error(e);

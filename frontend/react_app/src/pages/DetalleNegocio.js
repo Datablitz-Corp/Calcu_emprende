@@ -17,7 +17,9 @@ function DetalleNegocio() {
         const response = await axios.get(`${api}/detalle-negocio/${negocioId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log("🔎 Respuesta del backend:", response.data); // 👈 Este log mostrará TODO
         setNegocio(response.data);
+
       } catch (err) {
         console.error(err);
         setError("Error al obtener los datos del negocio.");
