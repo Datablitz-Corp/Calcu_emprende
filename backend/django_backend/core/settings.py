@@ -58,6 +58,9 @@ INSTALLED_APPS = [
     'costos',
     'inversion',
     'producto_servicio',
+    'producto_negocio',
+    'flujo_caja',
+    'resultados_negocio',
 ]
 
 CORS_ALLOWED_ORIGINS = config(
