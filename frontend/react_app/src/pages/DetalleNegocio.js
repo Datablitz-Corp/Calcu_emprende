@@ -14,15 +14,9 @@ function DetalleNegocio() {
     const fetchDetalle = async () => {
       try {
         const token = getToken();
-
-        const response = await axios.get(
-          `${api}/detalle-negocio/${negocioId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.get(`${api}/detalle-negocio/${negocioId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setNegocio(response.data);
       } catch (err) {
         console.error(err);
@@ -31,24 +25,23 @@ function DetalleNegocio() {
     };
 
     fetchDetalle();
-  }, [negocioId, api]); 
-  
-  if (error)
+  }, [negocioId, api]);
+
+  if (error) {
     return (
       <Layout>
         <div className="alert alert-danger">{error}</div>
       </Layout>
     );
+  }
 
-  if (!negocio)
+  if (!negocio) {
     return (
       <Layout>
         <div>Cargando...</div>
       </Layout>
     );
-
-    console.log("Datos negocio:", negocio);
-    console.log("Productos:", negocio.productos);
+  }
 
   return (
     <Layout>
@@ -57,19 +50,17 @@ function DetalleNegocio() {
 
         <p><strong>Capital propio:</strong> {negocio.capital_propio}</p>
         <p><strong>Monto préstamo:</strong> {negocio.monto_prestamo}</p>
-        <p><strong>Interés préstamo:</strong> {negocio.interes_prestamo}</p>
+        <p><strong>Interés préstamo:</strong> {negocio.interes_prestamo}%</p>
         <p><strong>Costos fijos:</strong> {negocio.costos_fijos}</p>
         <p><strong>Costos variables:</strong> {negocio.costos_variables}</p>
-        <p><strong>VAN:</strong> {negocio.VAN}</p>
-        <p><strong>TIR:</strong> {negocio.TIR}</p>
+        <p><strong>VAN:</strong> {negocio.VAN !== null ? negocio.VAN : "No calculado"}</p>
+        <p><strong>TIR:</strong> {negocio.TIR !== null ? negocio.TIR + "%" : "No calculado"}</p>
 
         <h4 className="mt-4">Productos / Servicios:</h4>
 
-         {/* <pre>{JSON.stringify(negocio.productos, null, 2)}</pre>  */}
-
-        {Array.isArray(JSON.parse(negocio.productos)) && JSON.parse(negocio.productos).length > 0 ? (
+        {Array.isArray(negocio.productos) && negocio.productos.length > 0 ? (
           <ul className="list-group">
-            {JSON.parse(negocio.productos).map((prod, index) => (
+            {negocio.productos.map((prod, index) => (
               <li key={index} className="list-group-item">
                 <strong>{prod.nombre_producto_servicio}</strong> — Precio: {prod.precio_venta}, Costo: {prod.costo_unitario}, Cantidad: {prod.cantidad_esperada}
               </li>
@@ -78,8 +69,6 @@ function DetalleNegocio() {
         ) : (
           <p>No hay productos registrados.</p>
         )}
-
-
       </div>
     </Layout>
   );
