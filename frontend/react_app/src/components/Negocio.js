@@ -93,6 +93,7 @@ export default function Negocio() {
           costov: parseFloat(p.costo) || 0,
           cantidad: parseInt(p.cantidad) || 0,
         })),
+        tasa_descuento: 10.0,
       };
 
 
