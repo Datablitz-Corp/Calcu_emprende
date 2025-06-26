@@ -6,6 +6,8 @@ from rest_framework import status
 from django.db import connection, DatabaseError
 import json
 
+
+# final
 class CrearNegocioCompletoView(APIView):
     def post(self, request):
         data = request.data
@@ -119,19 +121,30 @@ class ListaNegociosUsuarioView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 ## negico = 1 
 class NegocioDetalleAPIView(APIView):
     def get(self, request, negocio_id):
         with connection.cursor() as cursor:
             cursor.callproc("sp_resumen_negocio_json", [negocio_id])
             result = cursor.fetchall()
-
-            # Obtener los nombres de columnas
             columns = [col[0] for col in cursor.description]
             data = [dict(zip(columns, row)) for row in result]
 
-        return Response(data[0] if data else {})
-    
+        if data:
+            negocio = data[0]
+            # Convertir string JSON a objeto si productos existe
+            if negocio.get("productos"):
+                try:
+                    negocio["productos"] = json.loads(negocio["productos"])
+                except json.JSONDecodeError:
+                    negocio["productos"] = []
+
+            return Response(negocio)
+
+        return Response({})
+
+
 
 class EliminarNegocioView(APIView):
     def delete(self, request, negocio_id):
