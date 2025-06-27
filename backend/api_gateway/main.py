@@ -166,6 +166,19 @@ async def eliminar_negocio(negocio_id: int):
         raise HTTPException(status_code=500, detail=str(e))
     
 
+@app.put("/negocio/{negocio_id}/actualizar/")
+async def actualizar_negocio_gateway(negocio_id: int, payload: dict):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                f"{DJANGO_API_URL}/negocio/{negocio_id}/actualizar/",
+                json=payload
+            )
+        return response.json()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/debug/token/")
 def debug_token(authorization: str = Header(...)):
     token = authorization.replace("Bearer ", "")

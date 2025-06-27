@@ -143,6 +143,30 @@ class NegocioDetalleAPIView(APIView):
 
 
 # Editar negocio
+class ActualizarNegocioView(APIView):
+    def put(self, request, negocio_id):
+        nombre = request.data.get("nombre")
+        capital_propio = request.data.get("capital_propio")
+        prestamo = request.data.get("prestamo")
+        interes = request.data.get("interes")
+        costos = request.data.get("costos", [])
+        productos = request.data.get("productos", [])
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('sp_actualizar_negocio_completo', [
+                    negocio_id,
+                    nombre,
+                    capital_propio,
+                    prestamo,
+                    interes,
+                    json.dumps(costos),
+                    json.dumps(productos),
+                ])
+            return Response({"message": "Negocio actualizado correctamente"})
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
 
 # Eliminar negocio
 class EliminarNegocioView(APIView):

@@ -109,11 +109,11 @@ export default function Negocio() {
         // Editar negocio existente
         await axios.put(
           //`http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
-          `${api}/negocios/${negocioEditando.ID_negocio}/`,
+          `${api}/negocios/${negocioEditando.ID_negocio}/actualizar`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        console.log(`Negocio con ID ${negocioEditando.ID_negocio} actualizado exitosamente.`);
+        console.log(`Negocio actualizado exitosamente.`);
     
       } else {
         // Crear nuevo negocio
@@ -146,7 +146,7 @@ const eliminarNegocio = async (id) => {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    alert(data.mensaje || "Negocio eliminado correctamente");
+    alert("Negocio eliminado correctamente");
     fetchNegocios(); // Recarga la lista
   } catch (e) {
     console.error(e);
@@ -155,19 +155,56 @@ const eliminarNegocio = async (id) => {
 };
 
 
-  const abrirModalEditar = (negocio) => {
-    setModoEdicion(true);
-    setNegocioEditando(negocio);
-    setNombre(negocio.Nombre);
-    setCapitalPropio(negocio.capital_propio);
-    setMontoPrestamo(negocio.monto_prestamo);
-    setInteresPrestamo(negocio.interes_anual);
-    setCostosFijos(negocio.costos_fijos);
-    setCostosVariables(negocio.costos_variables);
-    setProductos(negocio.productos || []);
-    setError("");
-    setShowModal(true);
-  };
+const abrirModalEditar = (negocio) => {
+  setModoEdicion(true);
+  setNegocioEditando(negocio);
+  setNombre(negocio.Nombre);
+
+  // Capital e interés
+  setCapitalPropio(negocio.capital_propio || "");
+  setMontoPrestamo(negocio.prestamo || negocio.monto_prestamo || "");
+  setInteresPrestamo(negocio.interes || negocio.interes_anual || "");
+
+  // Costos: puede venir como string JSON o como objeto
+  let costos = [];
+  try {
+    costos = typeof negocio.costos === "string"
+      ? JSON.parse(negocio.costos)
+      : negocio.costos || [];
+  } catch (e) {
+    console.warn(" Error al leer costos:", e);
+    costos = [];
+  }
+
+  const fijo = costos.find(c => c.tipo === "costosFijos")?.monto || "";
+  const variable = costos.find(c => c.tipo === "costosVariables")?.monto || "";
+
+  setCostosFijos(fijo);
+  setCostosVariables(variable);
+
+  // Productos: también puede venir como JSON string
+  let productosFormateados = [];
+  try {
+    const raw = typeof negocio.productos === "string"
+      ? JSON.parse(negocio.productos)
+      : negocio.productos || [];
+
+    productosFormateados = raw.map(p => ({
+      nombre: p.nombre || p.nombre_producto_servicio || "",
+      precio: p.precv || p.precio || 0,
+      costo: p.costov || p.costo || 0,
+      cantidad: p.cantidad || p.cantidad_venta || 0,
+    }));
+  } catch (e) {
+    console.warn(" Error al traer productos:", e);
+    productosFormateados = [];
+  }
+
+  setProductos(productosFormateados);
+  setError("");
+  setShowModal(true);
+};
+
 
   const cerrarModal = () => {
     setShowModal(false);
