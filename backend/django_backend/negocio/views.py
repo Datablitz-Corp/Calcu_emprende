@@ -6,8 +6,11 @@ from rest_framework import status
 from django.db import connection, DatabaseError
 import json
 
+# django_backend/views/eliminar_negocio_view.py
 
-# final
+
+
+# final - crear negocio con van y tir
 class CrearNegocioCompletoView(APIView):
     def post(self, request):
         data = request.data
@@ -49,14 +52,7 @@ class CrearNegocioCompletoView(APIView):
 
 
 
-
-
-
-
-
-
-
-
+# crear negocio sin var y tir
 class CrearNegocioCompleto_sinVAN(APIView):
     def post(self, request):
         data = request.data
@@ -94,7 +90,7 @@ class CrearNegocioCompleto_sinVAN(APIView):
             return Response({"error": f"Error en la base de datos: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
+# crear negocio solo nombre
 class CrearNegocioView(APIView):
     def post(self, request):
         user_id = request.data.get('ID_usuario')
@@ -109,6 +105,7 @@ class CrearNegocioView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+# listar los negocios por usuario en el dashboard
 class ListaNegociosUsuarioView(APIView):
     def get(self, request, user_id):
         try:
@@ -122,7 +119,7 @@ class ListaNegociosUsuarioView(APIView):
 
 
 
-## negico = 1 
+## Detalle de 1 negico  
 class NegocioDetalleAPIView(APIView):
     def get(self, request, negocio_id):
         with connection.cursor() as cursor:
@@ -145,12 +142,15 @@ class NegocioDetalleAPIView(APIView):
         return Response({})
 
 
+# Editar negocio
 
+# Eliminar negocio
 class EliminarNegocioView(APIView):
     def delete(self, request, negocio_id):
         try:
             with connection.cursor() as cursor:
-                cursor.callproc('sp_eliminar_negocio', [negocio_id])
-            return Response({"message": "Negocio eliminado"}, status=status.HTTP_200_OK)
+                cursor.callproc('sp_eliminar_negocio_completo', [negocio_id])
+                resultado = cursor.fetchall()
+            return Response({'mensaje': resultado[0][0]}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

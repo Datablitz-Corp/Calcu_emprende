@@ -153,14 +153,18 @@ async def crear_negocio(negocio_data: dict, authorization: str = Header(...)):
     return response.json()
 
 
-@app.delete("/negocios/{negocio_id}/")
-async def eliminar_negocio(negocio_id: int, headers: dict = Depends(get_user_headers)):
-    async with httpx.AsyncClient() as client:
-        response = await client.delete(f"{DJANGO_API_URL}/negocio/eliminar/{negocio_id}/", headers=headers)
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
-    return {"detail": "Negocio eliminado"}
 
+@app.delete("/eliminar-negocio/{negocio_id}")
+async def eliminar_negocio(negocio_id: int):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(f"{DJANGO_API_URL}/eliminar-negocio/{negocio_id}/")
+        if response.status_code == 200:
+            return response.json()
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.get("/debug/token/")
 def debug_token(authorization: str = Header(...)):
