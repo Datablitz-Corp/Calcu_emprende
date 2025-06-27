@@ -7,6 +7,7 @@ from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
 import requests
+from fastapi.responses import JSONResponse
 
 load_dotenv()
 
@@ -183,11 +184,9 @@ async def actualizar_negocio(negocio_id: int, request: Request, authorization: s
             json=payload,
             headers={"Authorization": authorization}
         )
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
     
-    return response.json()
+    return JSONResponse(status_code=response.status_code, content=response.json())
+
 
 
 @app.get("/debug/token/")
