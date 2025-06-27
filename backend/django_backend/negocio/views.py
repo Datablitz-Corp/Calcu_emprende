@@ -145,12 +145,13 @@ class NegocioDetalleAPIView(APIView):
 # Editar negocio
 class ActualizarNegocioView(APIView):
     def put(self, request, negocio_id):
-        nombre = request.data.get("nombre")
-        capital_propio = request.data.get("capital_propio")
-        prestamo = request.data.get("prestamo")
-        interes = request.data.get("interes")
-        costos = request.data.get("costos", [])
-        productos = request.data.get("productos", [])
+        data = request.data
+        nombre = data.get("nombre")
+        capital_propio = data.get("capital_propio", 0)
+        prestamo = data.get("prestamo", 0)
+        interes = data.get("interes", 0.0)
+        costos = data.get("costos", [])
+        productos = data.get("productos", [])
 
         try:
             with connection.cursor() as cursor:

@@ -109,7 +109,7 @@ export default function Negocio() {
         // Editar negocio existente
         await axios.put(
           //`http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
-          `${api}/negocios/${negocioEditando.ID_negocio}/actualizar`,
+          `${api}/negocio/${negocioEditando.ID_negocio}/actualizar`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
