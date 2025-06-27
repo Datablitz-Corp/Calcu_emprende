@@ -7,6 +7,7 @@ from jose import jwt, JWTError
 import os
 from dotenv import load_dotenv
 import requests
+from fastapi.responses import JSONResponse
 
 load_dotenv()
 
@@ -165,18 +166,27 @@ async def eliminar_negocio(negocio_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+# actualizar negocio
+@app.put("/negocio/{negocio_id}/actualizar")
+async def actualizar_negocio(negocio_id: int, request: Request, authorization: str = Header(...)):
+    token = authorization.replace("Bearer ", "")
+    user_id = obtener_user_id_desde_token(token)
 
-@app.put("/negocio/{negocio_id}/actualizar/")
-async def actualizar_negocio_gateway(negocio_id: int, payload: dict):
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.put(
-                f"{DJANGO_API_URL}/negocio/{negocio_id}/actualizar/",
-                json=payload
-            )
-        return response.json()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    payload = await request.json()
+    payload["ID_usuario"] = user_id  
+
+    async with httpx.AsyncClient() as client:
+        response = await client.put(
+            f"{DJANGO_API_URL}/negocio/{negocio_id}/actualizar",
+            json=payload,
+            headers={"Authorization": authorization}
+        )
+    
+    return JSONResponse(status_code=response.status_code, content=response.json())
+
 
 
 @app.get("/debug/token/")

@@ -55,7 +55,7 @@ export default function Negocio() {
       const { data } = await axios.get(`${api}/negocios/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("🔎 Respuesta del backend:", data); // 👈 Este log mostrará TODO
+      console.log(" Respuesta del backend:", data); // 👈 Este log mostrará TODO
       
       setNegocios(data);
     } catch (e) {
@@ -63,20 +63,20 @@ export default function Negocio() {
     }
   };
 
-  const crearNegocio = async () => {
-    if (nombre.trim() === "") {
-      setError("El nombre del negocio es obligatorio.");
-      return;
-    }
+const crearNegocio = async () => {
+  if (nombre.trim() === "") {
+    setError("El nombre del negocio es obligatorio.");
+    return;
+  }
 
+  if (modoEdicion && negocioEditando) {
+    await actualizarNegocio();  //  función actualizar
+  } else {
     try {
       const token = getToken();
-
       const decodedToken = jwtDecode(token);
-      console.log(decodedToken);
-      const idUsuario = decodedToken.user_id; 
-    
-    // Crear el arreglo de costos por ahora
+      const idUsuario = decodedToken.user_id;
+
       const costos = [
         { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
         { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
@@ -88,7 +88,7 @@ export default function Negocio() {
         capital_propio: parseFloat(capitalPropio) || 0,
         prestamo: parseFloat(montoPrestamo) || 0,
         interes: parseFloat(interesPrestamo) || 0,
-        costos: costos, // costos debe ser un array con objetos tipo { tipo, monto }
+        costos: costos,
         productos: productos.map(p => ({
           nombre: p.nombre,
           precv: parseFloat(p.precio) || 0,
@@ -98,44 +98,67 @@ export default function Negocio() {
         tasa_descuento: 10.0,
       };
 
-
-      console.log("Datos a enviar:", payload); // <-- Aquí muestras los datos que se enviarán
-
-
       const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
+      await axios.post(`${api}/negocios/`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      if (modoEdicion && negocioEditando) {
-        // Editar negocio existente
-        await axios.put(
-          //`http://localhost:9000/negocios/${negocioEditando.ID_negocio}/`,
-          `${api}/negocios/${negocioEditando.ID_negocio}/actualizar`,
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        console.log(`Negocio actualizado exitosamente.`);
-    
-      } else {
-        // Crear nuevo negocio
+      console.log("Nuevo Negocio", payload);
 
-
-      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-        await axios.post(
-          `${api}/negocios/`,
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        console.log("Nuevo negocio creado exitosamente.");
-      }
-
-      cerrarModal();
-      fetchNegocios();
+      console.log(" Nuevo negocio creado exitosamente.");
     } catch (e) {
-      console.error(e);
-      alert("Error al guardar negocio");
+      console.error(" Error al crear negocio:", e);
+      alert("Error al crear negocio");
     }
-  };
+  }
+
+  cerrarModal();
+  fetchNegocios();
+};
+
+const actualizarNegocio = async () => {
+  try {
+    const token = getToken();
+    const decodedToken = jwtDecode(token);
+    const idUsuario = decodedToken.user_id;
+
+    const costos = [
+      { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
+      { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
+    ];
+
+    const payload = {
+      id_usuario: idUsuario,
+      nombre_negocio: nombre,
+      capital_propio: parseFloat(capitalPropio) || 0,
+      prestamo: parseFloat(montoPrestamo) || 0,
+      interes: parseFloat(interesPrestamo) || 0,
+      costos: costos,
+      productos: productos.map(p => ({
+        nombre: p.nombre,
+        precv: parseFloat(p.precio) || 0,
+        costov: parseFloat(p.costo) || 0,
+        cantidad: parseInt(p.cantidad) || 0,
+      })),
+    };
+
+    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+    await axios.put(
+      `${api}/negocio/${negocioEditando.ID_negocio}/actualizar`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    console.log(" Negocio actualizado correctamente.");
+  } catch (e) {
+    console.error(" Error al actualizar negocio:", e);
+    alert("Error al actualizar el negocio");
+  }
+};
+
+
 
 const eliminarNegocio = async (id) => {
   try {
@@ -182,7 +205,8 @@ const abrirModalEditar = (negocio) => {
   setCostosFijos(fijo);
   setCostosVariables(variable);
 
-  // Productos: también puede venir como JSON string
+  console.log("Productos recibidos del backend para edición:", negocio);
+
   let productosFormateados = [];
   try {
     const raw = typeof negocio.productos === "string"
@@ -195,6 +219,7 @@ const abrirModalEditar = (negocio) => {
       costo: p.costov || p.costo || 0,
       cantidad: p.cantidad || p.cantidad_venta || 0,
     }));
+
   } catch (e) {
     console.warn(" Error al traer productos:", e);
     productosFormateados = [];
