@@ -137,18 +137,23 @@ export default function Negocio() {
     }
   };
 
-  const eliminarNegocio = async (id) => {
-    try {
-      const token = getToken();
-      await axios.delete(`http://localhost:9000/negocios/${id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchNegocios();
-    } catch (e) {
-      console.error(e);
-      alert("Error al eliminar negocio");
-    }
-  };
+const eliminarNegocio = async (id) => {
+  try {
+    const token = getToken();
+    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+    const { data } = await axios.delete(`${api}/eliminar-negocio/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    alert(data.mensaje || "Negocio eliminado correctamente");
+    fetchNegocios(); // Recarga la lista
+  } catch (e) {
+    console.error(e);
+    alert("Error al eliminar negocio");
+  }
+};
+
 
   const abrirModalEditar = (negocio) => {
     setModoEdicion(true);
@@ -211,10 +216,15 @@ export default function Negocio() {
                   </button>
                   <button
                     className="btn btn-sm btn-danger"
-                    onClick={() => eliminarNegocio(n.ID_negocio)}
+                    onClick={() => {
+                      if (window.confirm("¿Estás seguro de que deseas eliminar este negocio?")) {
+                        eliminarNegocio(n.ID_negocio);
+                      }
+                    }}
                   >
                     Eliminar
                   </button>
+
                 </div>
               </li>
             ))}
