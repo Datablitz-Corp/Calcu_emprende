@@ -17,8 +17,21 @@ function DetalleNegocio() {
         const response = await axios.get(`${api}/detalle-negocio/${negocioId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("🔎 Respuesta del backend:", response.data); // 👈 Este log mostrará TODO
-        setNegocio(response.data);
+        console.log(" Respuesta del backend:", response.data); // ver data
+        
+        const data = response.data;
+        if (data?.productos && typeof data.productos === "string") {
+          try {
+            data.productos = JSON.parse(data.productos);
+          } catch (e) {
+            console.warn("Falta productos");
+            data.productos = [];
+          }
+        }
+
+        
+        setNegocio(data);
+
 
       } catch (err) {
         console.error(err);
@@ -32,7 +45,7 @@ function DetalleNegocio() {
   if (error) {
     return (
       <Layout>
-        <div className="alert alert-danger">{error}</div>
+        <div className="alert alert-danger mt-4">{error}</div>
       </Layout>
     );
   }
@@ -40,7 +53,7 @@ function DetalleNegocio() {
   if (!negocio) {
     return (
       <Layout>
-        <div>Cargando...</div>
+        <div className="container mt-4">Cargando...</div>
       </Layout>
     );
   }
@@ -50,26 +63,28 @@ function DetalleNegocio() {
       <div className="container mt-4">
         <h2 className="mb-3">{negocio.nombre_negocio}</h2>
 
-        <p><strong>Capital propio:</strong> {negocio.capital_propio}</p>
-        <p><strong>Monto préstamo:</strong> {negocio.monto_prestamo}</p>
-        <p><strong>Interés préstamo:</strong> {negocio.interes_prestamo}%</p>
-        <p><strong>Costos fijos:</strong> {negocio.costos_fijos}</p>
-        <p><strong>Costos variables:</strong> {negocio.costos_variables}</p>
-        <p><strong>VAN:</strong> {negocio.VAN !== null ? negocio.VAN : "No calculado"}</p>
-        <p><strong>TIR:</strong> {negocio.TIR !== null ? negocio.TIR + "%" : "No calculado"}</p>
+        <div className="mb-3"><strong>Capital propio:</strong> S/ {negocio.capital_propio}</div>
+        <div className="mb-3"><strong>Monto préstamo:</strong> S/ {negocio.monto_prestamo}</div>
+        <div className="mb-3"><strong>Interés préstamo:</strong> {negocio.interes_prestamo}%</div>
+        <div className="mb-3"><strong>Costos fijos:</strong> S/ {negocio.costos_fijos}</div>
+        <div className="mb-3"><strong>Costos variables:</strong> S/ {negocio.costos_variables}</div>
+        <div className="mb-3"><strong>VAN:</strong> {negocio.VAN !== null ? `S/ ${negocio.VAN}` : "No calculado"}</div>
+        <div className="mb-3"><strong>TIR:</strong> {negocio.TIR !== null ? `${negocio.TIR}%` : "No calculado"}</div>
 
-        <h4 className="mt-4">Productos / Servicios:</h4>
+
+        <h4 className="mt-4">Productos o Servicios:</h4>
 
         {Array.isArray(negocio.productos) && negocio.productos.length > 0 ? (
           <ul className="list-group">
             {negocio.productos.map((prod, index) => (
               <li key={index} className="list-group-item">
-                <strong>{prod.nombre_producto_servicio}</strong> — Precio: {prod.precio_venta}, Costo: {prod.costo_unitario}, Cantidad: {prod.cantidad_esperada}
+                <strong>{prod.nombre_producto_servicio}</strong><br />
+                Precio: S/ {prod.precio_venta}, Costo: S/ {prod.costo_unitario}, Cantidad esperada: {prod.cantidad_esperada}
               </li>
             ))}
           </ul>
         ) : (
-          <p>No hay productos registrados.</p>
+          <p className="text-muted">No hay productos registrados.</p>
         )}
       </div>
     </Layout>

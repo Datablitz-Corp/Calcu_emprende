@@ -188,6 +188,15 @@ async def actualizar_negocio(negocio_id: int, request: Request, authorization: s
     return JSONResponse(status_code=response.status_code, content=response.json())
 
 
+# negocio traer 1
+@app.get("/detalle-negocio/{negocio_id}")
+async def get_negocio_detalle(negocio_id: int, headers: dict = Depends(get_user_headers)):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{DJANGO_API_URL}/detalle-negocio/{negocio_id}/", headers=headers)
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    return response.json()
+
 
 @app.get("/debug/token/")
 def debug_token(authorization: str = Header(...)):
@@ -198,10 +207,3 @@ def debug_token(authorization: str = Header(...)):
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=9000, reload=True)
 
-@app.get("/detalle-negocio/{negocio_id}")
-async def get_negocio_detalle(negocio_id: int, headers: dict = Depends(get_user_headers)):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{DJANGO_API_URL}/detalle-negocio/{negocio_id}/", headers=headers)
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
-    return response.json()

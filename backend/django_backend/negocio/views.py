@@ -122,25 +122,29 @@ class ListaNegociosUsuarioView(APIView):
 ## Detalle de 1 negico  
 class NegocioDetalleAPIView(APIView):
     def get(self, request, negocio_id):
-        with connection.cursor() as cursor:
-            cursor.callproc("sp_resumen_negocio_json", [negocio_id])
-            result = cursor.fetchall()
-            columns = [col[0] for col in cursor.description]
-            data = [dict(zip(columns, row)) for row in result]
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc("sp_resumen_negocio_json", [negocio_id])
+                result = cursor.fetchone()  # fetchone, no fetchall, ya que esperamos un solo negocio
 
-        if data:
-            negocio = data[0]
-            # Convertir string JSON a objeto si productos existe
-            if negocio.get("productos"):
-                try:
-                    negocio["productos"] = json.loads(negocio["productos"])
-                except json.JSONDecodeError:
-                    negocio["productos"] = []
+                if not result:
+                    return Response({"detail": "Negocio no encontrado"}, status=404)
 
-            return Response(negocio)
+                columns = [col[0] for col in cursor.description]
+                negocio = dict(zip(columns, result))
 
-        return Response({})
+                # Procesar campo JSON (productos)
+                productos_raw = negocio.get("productos")
+                if productos_raw:
+                    try:
+                        negocio["productos"] = json.loads(productos_raw)
+                    except json.JSONDecodeError:
+                        negocio["productos"] = []
 
+                return Response(negocio, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
 # actualizar
 class ActualizarNegocioView(APIView):
@@ -148,27 +152,27 @@ class ActualizarNegocioView(APIView):
         try:
             print(" DATA RECIBIDA :", json.dumps(request.data, indent=2))
 
-            data = request.data
-            nombre_negocio = data.get('nombre_negocio')
-            capital_propio = data.get('capital_propio')
-            prestamo = data.get('prestamo')
-            interes = data.get('interes')
-            costos = data.get('costos', [])
-            productos = data.get('productos', [])
+            nombre = request.data.get("nombre_negocio")
+            capital = request.data.get("capital_propio")
+            prestamo = request.data.get("prestamo")
+            interes = request.data.get("interes")
+            costos = request.data.get("costos")
+            productos = request.data.get("productos")
 
-            with connection.cursor() as cursor:
-                cursor.callproc('sp_actualizar_negocio_completo', [
-                    negocio_id,
-                    nombre_negocio,
-                    capital_propio,
-                    prestamo,
-                    interes,
-                    json.dumps(costos),
-                    json.dumps(productos)
-                ])
-
-            return Response({"mensaje": "Negocio actualizado correctamente"}, status=status.HTTP_200_OK)
-
+            try:
+                with connection.cursor() as cursor:
+                    cursor.callproc("sp_actualizar_negocio_completo", [
+                        negocio_id,
+                        nombre,
+                        capital,
+                        prestamo,
+                        interes,
+                        json.dumps(costos),
+                        json.dumps(productos),
+                    ])
+                return Response({"mensaje": "Negocio actualizado con éxito"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
