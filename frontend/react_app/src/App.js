@@ -9,7 +9,7 @@ import Asesoria from "./pages/Asesoria";
 import Resultado from "./pages/Resultado";
 import Configuracion from "./pages/Configuracion";
 import DetalleNegocio from "./pages/DetalleNegocio";
-
+import EditarNegocio from "./components/EditarNegocio";
 
 function App() {
   return (
@@ -25,6 +25,7 @@ function App() {
         <Route path="/configuracion" element={<Configuracion />} />
         <Route path="/credito" element={<OpcionesCredito />} />
         <Route path="/detalle/:negocioId" element={<DetalleNegocio />} />
+        <Route path="/editar-negocio/:id" element={<EditarNegocio />} />
 
       </Routes>
     </Router>
