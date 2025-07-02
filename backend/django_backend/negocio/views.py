@@ -158,6 +158,7 @@ class ActualizarNegocioView(APIView):
             interes = request.data.get("interes")
             costos = request.data.get("costos")
             productos = request.data.get("productos")
+            tasa_descuento = request.data.get("tasa_descuento")
 
             try:
                 with connection.cursor() as cursor:
@@ -169,6 +170,7 @@ class ActualizarNegocioView(APIView):
                         interes,
                         json.dumps(costos),
                         json.dumps(productos),
+                        tasa_descuento
                     ])
                 return Response({"mensaje": "Negocio actualizado con éxito"}, status=status.HTTP_200_OK)
             
