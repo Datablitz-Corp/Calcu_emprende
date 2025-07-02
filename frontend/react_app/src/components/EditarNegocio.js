@@ -102,7 +102,7 @@ export default function EditarNegocio() {
 
       if (response.status === 200) {
         alert("Negocio actualizado con éxito.");
-        navigate("/dashboard"); // volver al listado principal
+        navigate("/dashboard"); // principal
       }
     } catch (e) {
       console.error("Error al actualizar:", e);
