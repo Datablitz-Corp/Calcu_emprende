@@ -258,28 +258,18 @@ const abrirModalEditar = async (negocio) => {
     });
 
     const detalle = response.data;
-    console.log(" Detalle recibido del backend:", detalle);
+    console.log(" Detalle completo recibido:", detalle);
 
     setModoEdicion(true);
     setNegocioEditando(detalle);
-    setNombre(detalle.Nombre || "");
+    setNombre(detalle.Nombre || detalle.nombre_negocio || "");
 
     setCapitalPropio(detalle.capital_propio || "");
     setMontoPrestamo(detalle.prestamo || detalle.monto_prestamo || "");
-    setInteresPrestamo(detalle.interes || detalle.interes_anual || "");
+    setInteresPrestamo(detalle.interes || detalle.interes_prestamo || "");
 
-    let costos = [];
-    try {
-      costos = typeof detalle.costos === "string"
-        ? JSON.parse(detalle.costos)
-        : detalle.costos || [];
-    } catch (e) {
-      console.warn(" Error al parsear costos:", e);
-      costos = [];
-    }
-
-    setCostosFijos(costos.find(c => c.tipo === "costosFijos")?.monto || "");
-    setCostosVariables(costos.find(c => c.tipo === "costosVariables")?.monto || "");
+    setCostosFijos(detalle.costos_fijos || "");
+    setCostosVariables(detalle.costos_variables || "");
 
     let productosFormateados = [];
     try {
@@ -289,12 +279,12 @@ const abrirModalEditar = async (negocio) => {
 
       productosFormateados = raw.map(p => ({
         nombre: p.nombre || p.nombre_producto_servicio || "",
-        precio: p.precv || p.precio || 0,
-        costo: p.costov || p.costo || 0,
-        cantidad: p.cantidad || p.cantidad_venta || 0,
+        precio: p.precv || p.precio_venta || 0,
+        costo: p.costov || p.costo_unitario || 0,
+        cantidad: p.cantidad || p.cantidad_esperada || 0,
       }));
     } catch (e) {
-      console.warn(" Error al parsear productos:", e);
+      console.warn(" Error al leer productos:", e);
     }
 
     setProductos(productosFormateados);
@@ -302,7 +292,7 @@ const abrirModalEditar = async (negocio) => {
     setShowModal(true);
 
   } catch (error) {
-    console.error(" Error al obtener detalle:", error);
+    console.error(" Error al obtener detalle del negocio:", error);
     alert("No se pudo cargar el negocio para edición.");
   }
 };
