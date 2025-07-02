@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import RetrieveAPIView
 from rest_framework import status
-
+import traceback
 from django.db import connection, DatabaseError
 import json
 
@@ -171,8 +171,12 @@ class ActualizarNegocioView(APIView):
                         json.dumps(productos),
                     ])
                 return Response({"mensaje": "Negocio actualizado con éxito"}, status=status.HTTP_200_OK)
+            
+
             except Exception as e:
+                print("❌ Error completo:\n", traceback.format_exc())
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
