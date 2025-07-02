@@ -16,6 +16,7 @@ export default function EditarNegocio() {
   const [costosVariables, setCostosVariables] = useState("");
   const [productos, setProductos] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
@@ -49,6 +50,8 @@ export default function EditarNegocio() {
       } catch (err) {
         console.error("Error al cargar negocio:", err);
         setError("No se pudo cargar el negocio.");
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -99,7 +102,7 @@ export default function EditarNegocio() {
 
       if (response.status === 200) {
         alert("Negocio actualizado con éxito.");
-        navigate("/dashboard"); // volver al listado principal dashboard
+        navigate("/"); // volver al listado principal
       }
     } catch (e) {
       console.error("Error al actualizar:", e);
@@ -107,12 +110,26 @@ export default function EditarNegocio() {
     }
   };
 
+  if (error) {
+    return (
+      <Layout>
+        <div className="alert alert-danger mt-4">{error}</div>
+      </Layout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mt-4">Cargando datos del negocio...</div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mt-4">
         <h2>Editar Negocio</h2>
-
-        {error && <div className="alert alert-danger">{error}</div>}
 
         <div className="mb-3">
           <label>Nombre del Negocio</label>
