@@ -248,56 +248,63 @@ const eliminarNegocio = async (id) => {
 };
 
 
-const abrirModalEditar = (negocio) => {
-  setModoEdicion(true);
-  setNegocioEditando(negocio);
-  setNombre(negocio.Nombre);
-
-  // Capital e interés
-  setCapitalPropio(negocio.capital_propio || "");
-  setMontoPrestamo(negocio.prestamo || negocio.monto_prestamo || "");
-  setInteresPrestamo(negocio.interes || negocio.interes_anual || "");
-
-  // Costos: puede venir como string JSON o como objeto
-  let costos = [];
+const abrirModalEditar = async (negocio) => {
   try {
-    costos = typeof negocio.costos === "string"
-      ? JSON.parse(negocio.costos)
-      : negocio.costos || [];
-  } catch (e) {
-    console.warn(" Error al leer costos:", e);
-    costos = [];
+    const token = getToken();
+    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+    const response = await axios.get(`${api}/detalle-negocio/${negocio.ID_negocio}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const detalle = response.data;
+    console.log(" Detalle recibido del backend:", detalle);
+
+    setModoEdicion(true);
+    setNegocioEditando(detalle);
+    setNombre(detalle.Nombre || "");
+
+    setCapitalPropio(detalle.capital_propio || "");
+    setMontoPrestamo(detalle.prestamo || detalle.monto_prestamo || "");
+    setInteresPrestamo(detalle.interes || detalle.interes_anual || "");
+
+    let costos = [];
+    try {
+      costos = typeof detalle.costos === "string"
+        ? JSON.parse(detalle.costos)
+        : detalle.costos || [];
+    } catch (e) {
+      console.warn(" Error al parsear costos:", e);
+      costos = [];
+    }
+
+    setCostosFijos(costos.find(c => c.tipo === "costosFijos")?.monto || "");
+    setCostosVariables(costos.find(c => c.tipo === "costosVariables")?.monto || "");
+
+    let productosFormateados = [];
+    try {
+      const raw = typeof detalle.productos === "string"
+        ? JSON.parse(detalle.productos)
+        : detalle.productos || [];
+
+      productosFormateados = raw.map(p => ({
+        nombre: p.nombre || p.nombre_producto_servicio || "",
+        precio: p.precv || p.precio || 0,
+        costo: p.costov || p.costo || 0,
+        cantidad: p.cantidad || p.cantidad_venta || 0,
+      }));
+    } catch (e) {
+      console.warn(" Error al parsear productos:", e);
+    }
+
+    setProductos(productosFormateados);
+    setError("");
+    setShowModal(true);
+
+  } catch (error) {
+    console.error(" Error al obtener detalle:", error);
+    alert("No se pudo cargar el negocio para edición.");
   }
-
-  const fijo = costos.find(c => c.tipo === "costosFijos")?.monto || "";
-  const variable = costos.find(c => c.tipo === "costosVariables")?.monto || "";
-
-  setCostosFijos(fijo);
-  setCostosVariables(variable);
-
-  console.log("Productos recibidos del backend para edición:", negocio);
-
-  let productosFormateados = [];
-  try {
-    const raw = typeof negocio.productos === "string"
-      ? JSON.parse(negocio.productos)
-      : negocio.productos || [];
-
-    productosFormateados = raw.map(p => ({
-      nombre: p.nombre || p.nombre_producto_servicio || "",
-      precio: p.precv || p.precio || 0,
-      costo: p.costov || p.costo || 0,
-      cantidad: p.cantidad || p.cantidad_venta || 0,
-    }));
-
-  } catch (e) {
-    console.warn(" Error al traer productos:", e);
-    productosFormateados = [];
-  }
-
-  setProductos(productosFormateados);
-  setError("");
-  setShowModal(true);
 };
 
 
