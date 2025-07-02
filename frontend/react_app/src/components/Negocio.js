@@ -337,12 +337,16 @@ const abrirModalEditar = async (negocio) => {
                     Detalle
                   </button>
 
+
+    {/* Editar, pagina */}
                   <button
                     className="btn btn-sm btn-warning me-2"
-                    onClick={() => abrirModalEditar(n)}
+                    onClick={() => navigate(`/editar-negocio/${n.ID_negocio}`)}
                   >
                     Editar
                   </button>
+
+
                   <button
                     className="btn btn-sm btn-danger"
                     onClick={() => {
