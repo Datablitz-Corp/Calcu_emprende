@@ -22,6 +22,10 @@ export default function Negocio() {
   const [costosFijos, setCostosFijos] = useState("");
   const [costosVariables, setCostosVariables] = useState("");
 
+const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+const [datosPrevios, setDatosPrevios] = useState(null);
+
+
   const navigate = useNavigate();
 
   const agregarProducto = () => {
@@ -70,7 +74,7 @@ const crearNegocio = async () => {
   }
 
   if (modoEdicion && negocioEditando) {
-    await actualizarNegocio();  //  función actualizar
+    await prepararConfirmacionActualizacion();  //  función actualizar
   } else {
     try {
       const token = getToken();
@@ -117,15 +121,67 @@ const crearNegocio = async () => {
   fetchNegocios();
 };
 
+const confirmarActualizacion = () => {
+  setMostrarConfirmacion(false);
+  actualizarNegocio(); // Ahora sí actualiza
+};
+
+const cancelarConfirmacion = () => {
+  setMostrarConfirmacion(false);
+};
+
+
+const prepararConfirmacionActualizacion = async () => {
+  try {
+    const token = getToken();
+    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+    const response = await axios.get(`${api}/detalle-negocio/${negocioEditando.ID_negocio}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setDatosPrevios(response.data);
+    setMostrarConfirmacion(true);
+  } catch (error) {
+    console.error("Error al obtener datos previos:", error);
+    alert("No se pudo obtener la información actual del negocio.");
+  }
+};
+
+
 const actualizarNegocio = async () => {
+  if (!negocioEditando?.ID_negocio) {
+    setError("Negocio inválido para actualizar.");
+    return;
+  }
+
+  if (nombre.trim() === "") {
+    setError("El nombre del negocio es obligatorio.");
+    return;
+  }
+
+  if (productos.length === 0) {
+    setError("Debes agregar al menos un producto o servicio.");
+    return;
+  }
+
+  const hayCamposInvalidos = productos.some(
+    (p) => !p.nombre || p.precio <= 0 || p.costo <= 0 || p.cantidad <= 0
+  );
+
+  if (hayCamposInvalidos) {
+    setError("Completa todos los campos de los productos correctamente.");
+    return;
+  }
+
   try {
     const token = getToken();
     const decodedToken = jwtDecode(token);
     const idUsuario = decodedToken.user_id;
 
     const costos = [
-      { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
-      { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
+      { tipo: "costosFijos", monto: parseFloat(costosFijos) || 0 },
+      { tipo: "costosVariables", monto: parseFloat(costosVariables) || 0 },
     ];
 
     const payload = {
@@ -134,8 +190,8 @@ const actualizarNegocio = async () => {
       capital_propio: parseFloat(capitalPropio) || 0,
       prestamo: parseFloat(montoPrestamo) || 0,
       interes: parseFloat(interesPrestamo) || 0,
-      costos: costos,
-      productos: productos.map(p => ({
+      costos,
+      productos: productos.map((p) => ({
         nombre: p.nombre,
         precv: parseFloat(p.precio) || 0,
         costov: parseFloat(p.costo) || 0,
@@ -145,18 +201,32 @@ const actualizarNegocio = async () => {
 
     const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
-    await axios.put(
+    const response = await axios.put(
       `${api}/negocio/${negocioEditando.ID_negocio}/actualizar`,
       payload,
-      { headers: { Authorization: `Bearer ${token}` } }
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
 
-    console.log(" Negocio actualizado correctamente.");
-  } catch (e) {
-    console.error(" Error al actualizar negocio:", e);
-    alert("Error al actualizar el negocio");
+    if (response.status === 200) {
+      console.log("✅ Negocio actualizado con éxito.");
+    } else {
+      console.warn("⚠️ No se pudo actualizar:", response.data);
+      alert("Ocurrió un problema al actualizar el negocio.");
+    }
+
+    cerrarModal();
+    fetchNegocios();
+  } catch (error) {
+    console.error("❌ Error al actualizar:", error);
+    alert("Ocurrió un error al intentar actualizar el negocio.");
   }
 };
+
+
 
 
 
@@ -178,56 +248,63 @@ const eliminarNegocio = async (id) => {
 };
 
 
-const abrirModalEditar = (negocio) => {
-  setModoEdicion(true);
-  setNegocioEditando(negocio);
-  setNombre(negocio.Nombre);
-
-  // Capital e interés
-  setCapitalPropio(negocio.capital_propio || "");
-  setMontoPrestamo(negocio.prestamo || negocio.monto_prestamo || "");
-  setInteresPrestamo(negocio.interes || negocio.interes_anual || "");
-
-  // Costos: puede venir como string JSON o como objeto
-  let costos = [];
+const abrirModalEditar = async (negocio) => {
   try {
-    costos = typeof negocio.costos === "string"
-      ? JSON.parse(negocio.costos)
-      : negocio.costos || [];
-  } catch (e) {
-    console.warn(" Error al leer costos:", e);
-    costos = [];
+    const token = getToken();
+    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+
+    const response = await axios.get(`${api}/detalle-negocio/${negocio.ID_negocio}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const detalle = response.data;
+    console.log(" Detalle recibido del backend:", detalle);
+
+    setModoEdicion(true);
+    setNegocioEditando(detalle);
+    setNombre(detalle.Nombre || "");
+
+    setCapitalPropio(detalle.capital_propio || "");
+    setMontoPrestamo(detalle.prestamo || detalle.monto_prestamo || "");
+    setInteresPrestamo(detalle.interes || detalle.interes_anual || "");
+
+    let costos = [];
+    try {
+      costos = typeof detalle.costos === "string"
+        ? JSON.parse(detalle.costos)
+        : detalle.costos || [];
+    } catch (e) {
+      console.warn(" Error al parsear costos:", e);
+      costos = [];
+    }
+
+    setCostosFijos(costos.find(c => c.tipo === "costosFijos")?.monto || "");
+    setCostosVariables(costos.find(c => c.tipo === "costosVariables")?.monto || "");
+
+    let productosFormateados = [];
+    try {
+      const raw = typeof detalle.productos === "string"
+        ? JSON.parse(detalle.productos)
+        : detalle.productos || [];
+
+      productosFormateados = raw.map(p => ({
+        nombre: p.nombre || p.nombre_producto_servicio || "",
+        precio: p.precv || p.precio || 0,
+        costo: p.costov || p.costo || 0,
+        cantidad: p.cantidad || p.cantidad_venta || 0,
+      }));
+    } catch (e) {
+      console.warn(" Error al parsear productos:", e);
+    }
+
+    setProductos(productosFormateados);
+    setError("");
+    setShowModal(true);
+
+  } catch (error) {
+    console.error(" Error al obtener detalle:", error);
+    alert("No se pudo cargar el negocio para edición.");
   }
-
-  const fijo = costos.find(c => c.tipo === "costosFijos")?.monto || "";
-  const variable = costos.find(c => c.tipo === "costosVariables")?.monto || "";
-
-  setCostosFijos(fijo);
-  setCostosVariables(variable);
-
-  console.log("Productos recibidos del backend para edición:", negocio);
-
-  let productosFormateados = [];
-  try {
-    const raw = typeof negocio.productos === "string"
-      ? JSON.parse(negocio.productos)
-      : negocio.productos || [];
-
-    productosFormateados = raw.map(p => ({
-      nombre: p.nombre || p.nombre_producto_servicio || "",
-      precio: p.precv || p.precio || 0,
-      costo: p.costov || p.costo || 0,
-      cantidad: p.cantidad || p.cantidad_venta || 0,
-    }));
-
-  } catch (e) {
-    console.warn(" Error al traer productos:", e);
-    productosFormateados = [];
-  }
-
-  setProductos(productosFormateados);
-  setError("");
-  setShowModal(true);
 };
 
 
