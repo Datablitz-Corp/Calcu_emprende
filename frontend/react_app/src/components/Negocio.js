@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 import { getToken } from "../utils/auth";
 import Layout from "./Layout";
-import axios from "axios";
-import { jwtDecode } from 'jwt-decode';
-import { useNavigate } from "react-router-dom";
 
 
 export default function Negocio() {
@@ -11,10 +11,6 @@ export default function Negocio() {
   const [nombre, setNombre] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
-  const [modoEdicion, setModoEdicion] = useState(false);
-  const [negocioEditando, setNegocioEditando] = useState(null);
-
-  const [productos, setProductos] = useState([]);
 
   const [capitalPropio, setCapitalPropio] = useState("");
   const [montoPrestamo, setMontoPrestamo] = useState("");
@@ -22,11 +18,34 @@ export default function Negocio() {
   const [costosFijos, setCostosFijos] = useState("");
   const [costosVariables, setCostosVariables] = useState("");
 
-const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
-const [datosPrevios, setDatosPrevios] = useState(null);
+  const [productos, setProductos] = useState([]);
 
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchNegocios();
+  }, []);
+
+
+  const fetchNegocios = async () => {
+    try {
+      setLoading(true);
+      const token = getToken();
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+      const { data } = await axios.get(`${api}/negocios/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNegocios(data);
+      setLoading(false);
+    } catch (e) {
+      console.error(e);
+      setError("Error al cargar los negocios. Intenta nuevamente.");
+      setLoading(false);
+    }
+  };
+
 
   const agregarProducto = () => {
     setProductos([
@@ -45,27 +64,6 @@ const [datosPrevios, setDatosPrevios] = useState(null);
     setProductos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  useEffect(() => {
-    fetchNegocios();
-  }, []);
-
-  const fetchNegocios = async () => {
-    try {
-      const token = getToken();
-
-      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-      //const { data } = await axios.get("http://localhost:9000/negocios/", {
-      const { data } = await axios.get(`${api}/negocios/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log(" Respuesta del backend:", data); // 👈 Este log mostrará TODO
-      
-      setNegocios(data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
 const crearNegocio = async () => {
   if (nombre.trim() === "") {
@@ -73,9 +71,6 @@ const crearNegocio = async () => {
     return;
   }
 
-  if (modoEdicion && negocioEditando) {
-    await prepararConfirmacionActualizacion();  //  función actualizar
-  } else {
     try {
       const token = getToken();
       const decodedToken = jwtDecode(token);
@@ -108,122 +103,20 @@ const crearNegocio = async () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("Nuevo Negocio", payload);
+      //console.log("Nuevo Negocio", payload);
 
-      console.log(" Nuevo negocio creado exitosamente.");
+      //console.log(" Nuevo negocio creado exitosamente.");
+      alert("Se creo nuevo negocio");
+      cerrarModal();
+      fetchNegocios();
+
     } catch (e) {
       console.error(" Error al crear negocio:", e);
       alert("Error al crear negocio");
     }
-  }
+  
 
-  cerrarModal();
-  fetchNegocios();
-};
-
-const confirmarActualizacion = () => {
-  setMostrarConfirmacion(false);
-  actualizarNegocio(); // Ahora sí actualiza
-};
-
-const cancelarConfirmacion = () => {
-  setMostrarConfirmacion(false);
-};
-
-
-const prepararConfirmacionActualizacion = async () => {
-  try {
-    const token = getToken();
-    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-    const response = await axios.get(`${api}/detalle-negocio/${negocioEditando.ID_negocio}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    setDatosPrevios(response.data);
-    setMostrarConfirmacion(true);
-  } catch (error) {
-    console.error("Error al obtener datos previos:", error);
-    alert("No se pudo obtener la información actual del negocio.");
-  }
-};
-
-
-const actualizarNegocio = async () => {
-  if (!negocioEditando?.ID_negocio) {
-    setError("Negocio inválido para actualizar.");
-    return;
-  }
-
-  if (nombre.trim() === "") {
-    setError("El nombre del negocio es obligatorio.");
-    return;
-  }
-
-  if (productos.length === 0) {
-    setError("Debes agregar al menos un producto o servicio.");
-    return;
-  }
-
-  const hayCamposInvalidos = productos.some(
-    (p) => !p.nombre || p.precio <= 0 || p.costo <= 0 || p.cantidad <= 0
-  );
-
-  if (hayCamposInvalidos) {
-    setError("Completa todos los campos de los productos correctamente.");
-    return;
-  }
-
-  try {
-    const token = getToken();
-    const decodedToken = jwtDecode(token);
-    const idUsuario = decodedToken.user_id;
-
-    const costos = [
-      { tipo: "costosFijos", monto: parseFloat(costosFijos) || 0 },
-      { tipo: "costosVariables", monto: parseFloat(costosVariables) || 0 },
-    ];
-
-    const payload = {
-      id_usuario: idUsuario,
-      nombre_negocio: nombre,
-      capital_propio: parseFloat(capitalPropio) || 0,
-      prestamo: parseFloat(montoPrestamo) || 0,
-      interes: parseFloat(interesPrestamo) || 0,
-      costos,
-      productos: productos.map((p) => ({
-        nombre: p.nombre,
-        precv: parseFloat(p.precio) || 0,
-        costov: parseFloat(p.costo) || 0,
-        cantidad: parseInt(p.cantidad) || 0,
-      })),
-    };
-
-    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-    const response = await axios.put(
-      `${api}/negocio/${negocioEditando.ID_negocio}/actualizar`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (response.status === 200) {
-      console.log("✅ Negocio actualizado con éxito.");
-    } else {
-      console.warn("⚠️ No se pudo actualizar:", response.data);
-      alert("Ocurrió un problema al actualizar el negocio.");
-    }
-
-    cerrarModal();
-    fetchNegocios();
-  } catch (error) {
-    console.error("❌ Error al actualizar:", error);
-    alert("Ocurrió un error al intentar actualizar el negocio.");
-  }
+  
 };
 
 
@@ -235,7 +128,7 @@ const eliminarNegocio = async (id) => {
     const token = getToken();
     const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
-    const { data } = await axios.delete(`${api}/eliminar-negocio/${id}`, {
+    await axios.delete(`${api}/eliminar-negocio/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -248,60 +141,9 @@ const eliminarNegocio = async (id) => {
 };
 
 
-const abrirModalEditar = async (negocio) => {
-  try {
-    const token = getToken();
-    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-    const response = await axios.get(`${api}/detalle-negocio/${negocio.ID_negocio}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const detalle = response.data;
-    console.log(" Detalle completo recibido:", detalle);
-
-    setModoEdicion(true);
-    setNegocioEditando(detalle);
-    setNombre(detalle.Nombre || detalle.nombre_negocio || "");
-
-    setCapitalPropio(detalle.capital_propio || "");
-    setMontoPrestamo(detalle.prestamo || detalle.monto_prestamo || "");
-    setInteresPrestamo(detalle.interes || detalle.interes_prestamo || "");
-
-    setCostosFijos(detalle.costos_fijos || "");
-    setCostosVariables(detalle.costos_variables || "");
-
-    let productosFormateados = [];
-    try {
-      const raw = typeof detalle.productos === "string"
-        ? JSON.parse(detalle.productos)
-        : detalle.productos || [];
-
-      productosFormateados = raw.map(p => ({
-        nombre: p.nombre || p.nombre_producto_servicio || "",
-        precio: p.precv || p.precio_venta || 0,
-        costo: p.costov || p.costo_unitario || 0,
-        cantidad: p.cantidad || p.cantidad_esperada || 0,
-      }));
-    } catch (e) {
-      console.warn(" Error al leer productos:", e);
-    }
-
-    setProductos(productosFormateados);
-    setError("");
-    setShowModal(true);
-
-  } catch (error) {
-    console.error(" Error al obtener detalle del negocio:", error);
-    alert("No se pudo cargar el negocio para edición.");
-  }
-};
-
 
   const cerrarModal = () => {
     setShowModal(false);
-    setModoEdicion(false);
-    setNegocioEditando(null);
     setNombre("");
     setError("");
     setCapitalPropio("");
@@ -311,6 +153,28 @@ const abrirModalEditar = async (negocio) => {
     setCostosVariables("");
     setProductos([]);
   };
+
+  if (error) {
+  return (
+    <Layout>
+      <div className="alert alert-danger mt-4">{error}</div>
+    </Layout>
+  );
+}
+
+if (loading) {
+  return (
+    <Layout>
+      <div className="container mt-5 d-flex flex-column align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <div className="mt-3 fs-5">Cargando datos del negocio...</div>
+      </div>
+    </Layout>
+  );
+}
+
 
   return (
     <Layout>
@@ -377,7 +241,6 @@ const abrirModalEditar = async (negocio) => {
           }}
           onClick={() => {
             setShowModal(true);
-            setModoEdicion(false);
             setError("");
             setNombre("");
           }}
@@ -400,8 +263,7 @@ const abrirModalEditar = async (negocio) => {
                 overflowY: "auto",
               }}
             >
-              <h4 className="fw-bold text-center mb-4">
-                {modoEdicion ? "Editar Negocio" : "Crear Nuevo Negocio"}
+              <h4 className="fw-bold text-center mb-4">Crear Nuevo Negocio
               </h4>
 
               {error && <div className="alert alert-danger py-2">{error}</div>}
@@ -558,7 +420,7 @@ const abrirModalEditar = async (negocio) => {
                   className="btn btn-primary"
                   onClick={crearNegocio}
                 >
-                  {modoEdicion ? "Guardar cambios" : "Crear Negocio"}
+                  Crear Negocio
                 </button>
               </div>
             </div>

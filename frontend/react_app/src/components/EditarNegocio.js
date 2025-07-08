@@ -17,6 +17,7 @@ export default function EditarNegocio() {
   const [productos, setProductos] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [tasaDescuento, setTasaDescuento] = useState("");
 
   const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
@@ -47,6 +48,9 @@ export default function EditarNegocio() {
         }));
 
         setProductos(formateados);
+        setTasaDescuento(data.tasa_descuento || 10.0);
+
+        
       } catch (err) {
         console.error("Error al cargar negocio:", err);
         setError("No se pudo cargar el negocio.");
@@ -94,6 +98,8 @@ export default function EditarNegocio() {
           costov: parseFloat(p.costo) || 0,
           cantidad: parseInt(p.cantidad) || 0,
         })),
+
+        tasa_descuento: parseFloat(tasaDescuento) || 10.0, // 
       };
 
       const response = await axios.put(`${api}/negocio/${id}/actualizar`, payload, {
@@ -102,7 +108,7 @@ export default function EditarNegocio() {
 
       if (response.status === 200) {
         alert("Negocio actualizado con éxito.");
-        navigate("/"); // volver al listado principal
+        navigate("/dashboard"); // principal
       }
     } catch (e) {
       console.error("Error al actualizar:", e);
@@ -111,21 +117,25 @@ export default function EditarNegocio() {
   };
 
   if (error) {
-    return (
-      <Layout>
-        <div className="alert alert-danger mt-4">{error}</div>
-      </Layout>
-    );
-  }
+  return (
+    <Layout>
+      <div className="alert alert-danger mt-4">{error}</div>
+    </Layout>
+  );
+}
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="container mt-4">Cargando datos del negocio...</div>
-      </Layout>
-    );
-  }
-
+if (loading) {
+  return (
+    <Layout>
+      <div className="container mt-5 d-flex flex-column align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <div className="mt-3 fs-5">Cargando datos del negocio...</div>
+      </div>
+    </Layout>
+  );
+}
   return (
     <Layout>
       <div className="container mt-4">
@@ -161,7 +171,20 @@ export default function EditarNegocio() {
             <input type="number" className="form-control" value={costosVariables} onChange={(e) => setCostosVariables(e.target.value)} />
           </div>
         </div>
-
+  {/* Inversión 
+        <div className="row">
+        <div className="col-md-6 mb-3">
+            <label>Tasa de descuento (%)</label>
+            <input
+            type="number"
+            className="form-control"
+            step="0.01"
+            value={tasaDescuento}
+            onChange={(e) => setTasaDescuento(e.target.value)}
+            />
+        </div>
+        </div>
+*/}
         <h5 className="mt-4">Productos o Servicios</h5>
         {productos.map((p, i) => (
           <div key={i} className="border p-3 mb-3 rounded">
@@ -192,7 +215,7 @@ export default function EditarNegocio() {
         <button className="btn btn-outline-primary w-100 mb-4" onClick={agregarProducto}>Agregar Producto</button>
 
         <div className="d-flex justify-content-end gap-2">
-          <button className="btn btn-secondary" onClick={() => navigate("/")}>Cancelar</button>
+          <button className="btn btn-secondary" onClick={() => navigate("/dashboard")}>Cancelar</button>
           <button className="btn btn-success" onClick={guardarCambios}>Guardar Cambios</button>
         </div>
       </div>
