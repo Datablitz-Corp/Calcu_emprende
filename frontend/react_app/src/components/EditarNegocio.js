@@ -117,21 +117,25 @@ export default function EditarNegocio() {
   };
 
   if (error) {
-    return (
-      <Layout>
-        <div className="alert alert-danger mt-4">{error}</div>
-      </Layout>
-    );
-  }
+  return (
+    <Layout>
+      <div className="alert alert-danger mt-4">{error}</div>
+    </Layout>
+  );
+}
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="container mt-4">Cargando datos del negocio...</div>
-      </Layout>
-    );
-  }
-
+if (loading) {
+  return (
+    <Layout>
+      <div className="container mt-5 d-flex flex-column align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <div className="mt-3 fs-5">Cargando datos del negocio...</div>
+      </div>
+    </Layout>
+  );
+}
   return (
     <Layout>
       <div className="container mt-4">
@@ -211,7 +215,7 @@ export default function EditarNegocio() {
         <button className="btn btn-outline-primary w-100 mb-4" onClick={agregarProducto}>Agregar Producto</button>
 
         <div className="d-flex justify-content-end gap-2">
-          <button className="btn btn-secondary" onClick={() => navigate("/dasboard")}>Cancelar</button>
+          <button className="btn btn-secondary" onClick={() => navigate("/dashboard")}>Cancelar</button>
           <button className="btn btn-success" onClick={guardarCambios}>Guardar Cambios</button>
         </div>
       </div>
