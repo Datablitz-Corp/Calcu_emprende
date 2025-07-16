@@ -63,10 +63,14 @@ INSTALLED_APPS = [
     'resultados_negocio',
 ]
 
+
+
 CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS",
-    cast=Csv(),  # Esto lo convierte en una lista
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:3000',
+    cast=Csv()
 )
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

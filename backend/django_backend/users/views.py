@@ -32,7 +32,7 @@ class MeView(APIView):
     def get(self, request):
         username = request.user.username
         with connection.cursor() as cursor:
-            cursor.callproc('sp_get_user_by_username', [username])
+            cursor.callproc('sp_get_username', [username])
             result = cursor.fetchall()
 
         if result:
@@ -51,7 +51,7 @@ class MeView(APIView):
         data = request.data
 
         with connection.cursor() as cursor:
-            cursor.callproc('sp_update_user_by_username', [
+            cursor.callproc('sp_update_username', [
                 username,
                 data.get('first_name'),
                 data.get('last_name'),
