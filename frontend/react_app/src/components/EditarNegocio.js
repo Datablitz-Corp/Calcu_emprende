@@ -216,7 +216,27 @@ if (loading) {
 
         <div className="d-flex justify-content-end gap-2">
           <button className="btn btn-secondary" onClick={() => navigate("/dashboard")}>Cancelar</button>
+           {/* 
+         
           <button className="btn btn-success" onClick={guardarCambios}>Guardar Cambios</button>
+
+
+*/}
+          <button className="btn btn-sm btn-danger"
+            onClick={() => {
+              if (window.confirm("¿Estás seguro de que deseas realizar estos camibios?")) {
+                        guardarCambios();
+              }
+            }}
+          >
+          Guardar Cambios
+          </button>
+
+
+
+
+
+
         </div>
       </div>
     </Layout>

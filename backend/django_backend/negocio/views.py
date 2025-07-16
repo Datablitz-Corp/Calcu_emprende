@@ -5,6 +5,8 @@ from rest_framework import status
 import traceback
 from django.db import connection, DatabaseError
 import json
+from .funciones import calcular_var_tir_y_guardar
+
 
 # django_backend/views/eliminar_negocio_view.py
 
@@ -52,8 +54,10 @@ class CrearNegocioCompletoView(APIView):
 
 
 
-# crear negocio sin var y tir
-class CrearNegocioCompleto_sinVAN(APIView):
+
+# crear negocio  (var y tir) backend
+
+class CrearNegocioCompleto_VAN_TIR(APIView):
     def post(self, request):
         data = request.data
         try:
@@ -64,6 +68,7 @@ class CrearNegocioCompleto_sinVAN(APIView):
             interes = data.get('interes')
             costos = data.get('costos')
             productos = data.get('productos')
+            tasa_descuento = data.get('tasa_descuento', 10.0)
 
             if not user_id or not nombre_negocio:
                 return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
@@ -85,9 +90,39 @@ class CrearNegocioCompleto_sinVAN(APIView):
                 result = cursor.fetchone()
                 negocio_id = result[0] if result else None
 
-            return Response({"message": "Negocio creado con éxito", "negocio_id": negocio_id}, status=status.HTTP_201_CREATED)
+            if not negocio_id:
+                return Response({"error": "No se pudo crear el negocio"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # 👇 Calcular VAN y TIR y guardar flujos
+            productos_convertidos = [
+                {"precio": p.get("precv", 0), "cantidad": p.get("cantidad", 0)}
+                for p in productos
+            ]
+            costos_total = sum(c.get("monto", 0) for c in costos)
+
+            van, tir = calcular_var_tir_y_guardar(
+                id_negocio=negocio_id,
+                capital_propio=capital_propio,
+                prestamo=prestamo,
+                interes_anual=interes,
+                costos_anuales=costos_total,
+                productos=productos_convertidos,
+                tasa_descuento=tasa_descuento
+            )
+
+            return Response({
+                "message": "Negocio creado con éxito",
+                "negocio_id": negocio_id,
+                "VAN": van,
+                "TIR": tir
+            }, status=status.HTTP_201_CREATED)
+
         except DatabaseError as e:
             return Response({"error": f"Error en la base de datos: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"error": f"Error inesperado: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 
 # crear negocio solo nombre
@@ -181,6 +216,10 @@ class ActualizarNegocioView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
 
 # Eliminar negocio
 class EliminarNegocioView(APIView):
