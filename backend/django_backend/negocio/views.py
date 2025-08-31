@@ -8,11 +8,8 @@ import json
 from .funciones import calcular_var_tir_y_guardar
 
 
-# django_backend/views/eliminar_negocio_view.py
 
-
-
-# final - crear negocio con van y tir
+# crear negocio con (van y tir)  procedimiento
 class CrearNegocioCompletoView(APIView):
     def post(self, request):
         data = request.data
@@ -56,7 +53,6 @@ class CrearNegocioCompletoView(APIView):
 
 
 # crear negocio  (var y tir) backend
-
 class CrearNegocioCompleto_VAN_TIR(APIView):
     def post(self, request):
         data = request.data
@@ -181,11 +177,11 @@ class NegocioDetalleAPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=500)
 
-# actualizar
+
 class ActualizarNegocioView(APIView):
     def put(self, request, negocio_id):
         try:
-            print(" DATA RECIBIDA :", json.dumps(request.data, indent=2))
+            print("DATA RECIBIDA:", json.dumps(request.data, indent=2))
 
             nombre = request.data.get("nombre_negocio")
             capital = request.data.get("capital_propio")
@@ -196,8 +192,9 @@ class ActualizarNegocioView(APIView):
             tasa_descuento = request.data.get("tasa_descuento")
 
             try:
+                # Llamar al procedimiento que actualiza los datos
                 with connection.cursor() as cursor:
-                    cursor.callproc("sp_actualizar_negocio_completo", [
+                    cursor.callproc("sp_actualizar_negocio_completo_sin_var_tir", [
                         negocio_id,
                         nombre,
                         capital,
@@ -207,11 +204,27 @@ class ActualizarNegocioView(APIView):
                         json.dumps(productos),
                         tasa_descuento
                     ])
-                return Response({"mensaje": "Negocio actualizado con éxito"}, status=status.HTTP_200_OK)
-            
+
+                #  Calcular VAN y TIR
+                costos_anuales = sum(c["monto"] for c in costos)
+                van, tir = calcular_var_tir_y_guardar(
+                    id_negocio=negocio_id,
+                    capital_propio=capital,
+                    prestamo=prestamo,
+                    interes_anual=interes,
+                    costos_anuales=costos_anuales,
+                    productos=productos,
+                    tasa_descuento=tasa_descuento
+                )
+
+                return Response({
+                    "mensaje": "Negocio actualizado con éxito",
+                    "VAN": van,
+                    "TIR": tir
+                }, status=status.HTTP_200_OK)
 
             except Exception as e:
-                print("❌ Error completo:\n", traceback.format_exc())
+                print("❌ Error en actualización o cálculo:\n", traceback.format_exc())
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except Exception as e:

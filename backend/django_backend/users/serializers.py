@@ -31,19 +31,26 @@ class RegisterSerializer(serializers.ModelSerializer):
         return User.objects.create_user(**validated_data)
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
-    
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
     def validate(self, data):
-        username = data.get('username')
+        email = data.get('email')
         password = data.get('password')
 
-        user = authenticate(username=username, password=password)
-        
-        if user:
-            refresh = RefreshToken.for_user(user)
-            return {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        raise serializers.ValidationError("Invalid credentials")
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Usuario no encontrado con este email.")
+
+        if not user.check_password(password):
+            raise serializers.ValidationError("Credenciales inválidas.")
+
+        if not user.is_active:
+            raise serializers.ValidationError("La cuenta está inactiva.")
+
+        refresh = RefreshToken.for_user(user)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }

@@ -35,6 +35,10 @@ def calcular_var_tir_y_guardar(
             # Eliminar flujos anteriores
             cursor.callproc("sp_eliminar_flujo_caja", [id_negocio])
 
+            # Eliminar resultado anterior (esto es lo que faltaba)
+            cursor.callproc("sp_eliminar_resultado", [id_negocio])
+
+
             # Insertar flujos nuevos
             for i, flujo in enumerate(flujos, start=1):
                 cursor.callproc("sp_insertar_flujo_caja", [id_negocio, i, round(flujo, 2)])

@@ -16,7 +16,7 @@ SECRET_KEY = "django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#
 ALGORITHM = "HS256"
 
 
-def obtener_user_id_desde_token(token: str):
+def obtener_user_id_desde_token_(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         print("PAYLOAD DECODIFICADO:", payload)
@@ -25,12 +25,26 @@ def obtener_user_id_desde_token(token: str):
         print("ERROR al decodificar token:", e)
         return None
 
+# --- Función para extraer el user_id del token ---
+def obtener_user_id_desde_token(token: str):
+    if not token:
+        raise HTTPException(status_code=401, detail="Token no proporcionado")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token inválido: no contiene user_id")
+        return user_id
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
 
 # App
 app = FastAPI()
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")  # default opcional
-
+### FRONTEND_URL= http://52.205.54.29:3000
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[frontend_url],
@@ -52,11 +66,11 @@ def read_root():
 #DJANGO_API_URL = "http://localhost:8000/api"
 DJANGO_API_URL = "http://django:8000/"
 
-@app.post("/register/")
+@app.post("/registro/")
 async def register_user(user_data: dict):
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(f"{DJANGO_API_URL}/register/", json=user_data)
+            response = await client.post(f"{DJANGO_API_URL}/registro/", json=user_data)
         except httpx.RequestError as exc:
             raise HTTPException(status_code=500, detail=f"Error de conexión con Django: {exc}")
 
@@ -115,22 +129,37 @@ async def update_usuario(request: Request, headers: dict = Depends(get_user_head
 
 # ---------------------  NEGOCIOS ----------------------
 
+# ---- lista negocios ----
 @app.get("/negocios/")
 async def listar_negocios(authorization: str = Header(...)):
-    #print("HEADER Authorization recibido:", authorization) 
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Formato de token inválido")
 
     token = authorization.replace("Bearer ", "")
     user_id = obtener_user_id_desde_token(token)
 
     if not user_id:
-        raise HTTPException(status_code=401, detail="Token inválido")
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{DJANGO_API_URL}/negocio/lista/{user_id}/",
-            headers={"Authorization": authorization}
-        )
-    return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{DJANGO_API_URL}/negocio/lista/{user_id}/",
+                headers={"Authorization": authorization}
+            )
+
+        print("📌 Respuesta Django:", response.status_code, response.text)
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=response.json()
+            )
+
+        return response.json()
+
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Error de conexión con Django API: {str(e)}")
 
 
 @app.post("/negocios/")
