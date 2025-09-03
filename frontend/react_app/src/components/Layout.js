@@ -15,6 +15,29 @@ const colors = {
   border: '#DADAD5'       // Gris claro neutro
 };
 
+const styles = {
+  footer: {
+    backgroundColor: colors.primary,
+    color: colors.lightText,
+    padding: '2rem',
+    textAlign: 'center',
+    borderTop: `3px solid ${colors.accent}`
+  },
+  footerLinks: {
+    display: 'flex',
+    gap: '1.5rem',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginBottom: '1rem'
+  },
+  footerLink: {
+    color: colors.lightText,
+    textDecoration: 'none',
+    opacity: 0.8
+  },
+
+}
+
 function Layout({ children }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -222,6 +245,18 @@ function Layout({ children }) {
       >
         {children}
       </motion.main>
+
+      <footer style={styles.footer}>
+        <div style={styles.footerLinks}>
+          <Link to="/nosotros" style={styles.footerLink}>Nosotros</Link>
+          <Link to="/servicios" style={styles.footerLink}>Servicios</Link>
+          <Link to="/contacto" style={styles.footerLink}>Contacto</Link>
+          <Link to="/terminos" style={styles.footerLink}>Términos</Link>
+          <Link to="/privacidad" style={styles.footerLink}>Privacidad</Link>
+        </div>
+        <p>© {new Date().getFullYear()} EmprendePe. Todos los derechos reservados.</p>
+      </footer>
+
     </motion.div>
   );
 }

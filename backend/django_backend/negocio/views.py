@@ -5,7 +5,7 @@ from rest_framework import status
 import traceback
 from django.db import connection, DatabaseError
 import json
-from .funciones import calcular_var_tir_y_guardar
+from .funciones import calcular_var_tir_y_guardar, recrear_van_tir
 
 
 
@@ -89,7 +89,7 @@ class CrearNegocioCompleto_VAN_TIR(APIView):
             if not negocio_id:
                 return Response({"error": "No se pudo crear el negocio"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # 👇 Calcular VAN y TIR y guardar flujos
+            # Calcular VAN y TIR y guardar flujos
             productos_convertidos = [
                 {"precio": p.get("precv", 0), "cantidad": p.get("cantidad", 0)}
                 for p in productos
@@ -186,13 +186,13 @@ class ActualizarNegocioView(APIView):
             nombre = request.data.get("nombre_negocio")
             capital = request.data.get("capital_propio")
             prestamo = request.data.get("prestamo")
-            interes = request.data.get("interes")
-            costos = request.data.get("costos")
-            productos = request.data.get("productos")
-            tasa_descuento = request.data.get("tasa_descuento")
+            interes = request.data.get("interes")  # <- interes_anual
+            costos = request.data.get("costos", [])
+            productos = request.data.get("productos", [])
+            tasa_descuento = request.data.get("tasa_descuento", 10.0)
 
             try:
-                # Llamar al procedimiento que actualiza los datos
+                # 1. Actualizar negocio sin VAN/TIR
                 with connection.cursor() as cursor:
                     cursor.callproc("sp_actualizar_negocio_completo_sin_var_tir", [
                         negocio_id,
@@ -205,14 +205,13 @@ class ActualizarNegocioView(APIView):
                         tasa_descuento
                     ])
 
-                #  Calcular VAN y TIR
-                costos_anuales = sum(c["monto"] for c in costos)
-                van, tir = calcular_var_tir_y_guardar(
+                # 2. Calcular y guardar VAN/TIR con flujos
+                van, tir = recrear_van_tir(
                     id_negocio=negocio_id,
                     capital_propio=capital,
                     prestamo=prestamo,
                     interes_anual=interes,
-                    costos_anuales=costos_anuales,
+                    costos=costos,
                     productos=productos,
                     tasa_descuento=tasa_descuento
                 )
@@ -225,11 +224,13 @@ class ActualizarNegocioView(APIView):
 
             except Exception as e:
                 print("❌ Error en actualización o cálculo:\n", traceback.format_exc())
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 
