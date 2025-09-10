@@ -1,19 +1,15 @@
-// src/utils/auth.js
 import { jwtDecode } from "jwt-decode";
 
 export const setToken = (token) => {
   localStorage.setItem("token", token);
 };
 
-export const getToken = () => {
-  return localStorage.getItem("token");
-};
+
+export function getToken() {
+  return sessionStorage.getItem("token") || localStorage.getItem("token");
+}
 
 
-export const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user"); // aseguramos quitar también el usuario
-};
 
 // NUEVAS FUNCIONES 👇
 export const setUser = (user) => {
@@ -40,3 +36,24 @@ export const getUser_tok = () => {
     return null;
   }
 };
+
+export function isTokenValid() {
+  const token = getToken();
+  if (!token) return false;
+
+  try {
+    const decoded = jwtDecode(token);
+    const currentTime = Date.now() / 1000; // en segundos
+    return decoded.exp > currentTime; // true si no ha expirado
+  } catch (err) {
+    console.error("Error decodificando token:", err);
+    return false;
+  }
+}
+
+export function logout() {
+  sessionStorage.clear();
+  localStorage.removeItem("token");
+  localStorage.removeItem("refresh");
+  localStorage.removeItem("rememberMe");
+}

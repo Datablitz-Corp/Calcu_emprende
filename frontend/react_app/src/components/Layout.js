@@ -70,28 +70,24 @@ function Layout({ children }) {
       style={{ 
         backgroundColor: colors.background,
         minHeight: '100vh',
-        position: 'relative',
-        overflow: 'hidden'
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      {/* Background pattern/image */}
+      {/* Background Color blanco*/}
+
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.1 }}
-        transition={{ delay: 0.3 }}
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: 'url(https://i.ibb.co/6y4W9qN/emprende-pe-pattern.png)',
-          backgroundSize: 'contain',
-          backgroundPosition: 'right bottom',
-          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#FFFFFF',  
           zIndex: 0
         }}
       />
+
 
       {/* Barra superior unificada */}
       <motion.div 
@@ -118,7 +114,7 @@ function Layout({ children }) {
             <h2 className="fw-bold mb-0" style={{ color: colors.lightText }}>EmprendePE</h2>
             {user && (
               <small style={{ color: colors.accent }}>
-                Hola, <strong>{user.nombre}</strong> 👋
+                Hola, <strong>{user.user}</strong> 👋
               </small>
             )}
           </motion.div>
@@ -237,7 +233,7 @@ function Layout({ children }) {
 
       {/* Contenido principal */}
       <motion.main 
-        className="container mt-4" 
+        className="container mt-4 flex-grow-1" 
         style={{ position: 'relative'}}
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

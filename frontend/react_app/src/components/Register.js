@@ -91,15 +91,21 @@ const Register = () => {
     }
     
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:9000';
+      const apiUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:9000';
       
-      const response = await axios.post(`${apiUrl}/registro`, {
+      const response = await axios.post(`${apiUrl}/register`, {
         username: form.username,
         email: form.email,
         password: form.password,
         telefono: form.phone,
         latitud: form.latitud,
-        longitud: form.longitud
+        longitud: form.longitud,
+        auditoria: {
+          acepta_terminos: acceptedTerms,
+          acepta_politicas: acceptedDataPolicy,
+          ip_address: window.location.hostname, 
+          navegador_dispositivo: navigator.userAgent
+        }
       }, {
         headers: {
           'Content-Type': 'application/json'

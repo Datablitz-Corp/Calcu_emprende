@@ -1,29 +1,22 @@
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
-import httpx
-import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
-import os
-from dotenv import load_dotenv
-import requests
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr, Field, validator
+from dotenv import load_dotenv
+from jose import jwt, JWTError
+import requests
+import uvicorn
+import httpx
+import os
 
-load_dotenv()
 
-# Reemplaza esto por la misma clave y algoritmo que usas en Django
+# clave y algoritmo -> Django
 SECRET_KEY = "django-insecure-7@went*=n_z7ka&k^e$jl(p074bmd75h+e166*u9kximil-3t#"
 ALGORITHM = "HS256"
 
 
-def obtener_user_id_desde_token_(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print("PAYLOAD DECODIFICADO:", payload)
-        return payload.get("user_id")  # esto debe existir en el payload
-    except JWTError as e:
-        print("ERROR al decodificar token:", e)
-        return None
+######## FUNCIONES
 
 # --- Función para extraer el user_id del token ---
 def obtener_user_id_desde_token(token: str):
@@ -44,7 +37,7 @@ def obtener_user_id_desde_token(token: str):
 app = FastAPI()
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")  # default opcional
-### FRONTEND_URL= http://52.205.54.29:3000
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[frontend_url],
@@ -58,38 +51,52 @@ async def get_user_headers(token: str = Depends(oauth2_scheme)):
     return {"Authorization": f"Bearer {token}"}
 
 
-# GET / POST / DELET
+#  RUTAS  ###########  GET / POST / DELET 
+
+
 @app.get("/")
 def read_root():
     return {"message": "API Gateway funcionando"}
 
-#DJANGO_API_URL = "http://localhost:8000/api"
+
 DJANGO_API_URL = "http://django:8000/"
 
-@app.post("/registro/")
-async def register_user(user_data: dict):
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(f"{DJANGO_API_URL}/registro/", json=user_data)
-        except httpx.RequestError as exc:
-            raise HTTPException(status_code=500, detail=f"Error de conexión con Django: {exc}")
 
-        # OK: usuario creado
+# Inicio de sesion
+
+
+@app.post("/register/")
+async def register_user(request: Request):
+    try:
+        # 1. Recibir datos desde React
+        data = await request.json()
+
+        # 2. Mandar esos datos al backend Django
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(f"{DJANGO_API_URL}/register/", json=data)
+
+        # 3. Manejar la respuesta de Django
         if response.status_code == 201:
-            try:
-                return response.json()
-            except Exception:
-                return {"message": "Usuario creado, pero sin respuesta JSON"}
+            return {
+                "message": "Usuario registrado correctamente",
+                "data": response.json()
+            }
+        else:
+            # Retornar error tal cual viene de Django
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=response.json()
+            )
 
-        # Error controlado desde Django
-        try:
-            error_detail = response.json()
-        except Exception:
-            error_detail = {"error": response.text or "Error desconocido desde Django"}
-
+    except httpx.RequestError as e:
         raise HTTPException(
-            status_code=response.status_code,
-            detail=error_detail
+            status_code=502,
+            detail=f"Error al conectar con Django: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno en gateway: {str(e)}"
         )
 
 @app.post("/login/")
@@ -116,6 +123,7 @@ async def get_usuario(headers: dict = Depends(get_user_headers)):
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.text)
     return response.json()
+
 
 @app.put("/usuario")
 async def update_usuario(request: Request, headers: dict = Depends(get_user_headers)):
@@ -161,7 +169,7 @@ async def listar_negocios(authorization: str = Header(...)):
     except httpx.RequestError as e:
         raise HTTPException(status_code=500, detail=f"Error de conexión con Django API: {str(e)}")
 
-
+# Crear negocio
 @app.post("/negocios/")
 async def crear_negocio(negocio_data: dict, authorization: str = Header(...)):
     token = authorization.replace("Bearer ", "")
@@ -183,7 +191,7 @@ async def crear_negocio(negocio_data: dict, authorization: str = Header(...)):
     return response.json()
 
 
-
+# Eliminar Negocio
 @app.delete("/eliminar-negocio/{negocio_id}")
 async def eliminar_negocio(negocio_id: int):
     try:
@@ -217,7 +225,7 @@ async def actualizar_negocio(negocio_id: int, request: Request, authorization: s
     return JSONResponse(status_code=response.status_code, content=response.json())
 
 
-# negocio traer 1
+# Detalle de 1 Negocio 
 @app.get("/detalle-negocio/{negocio_id}")
 async def get_negocio_detalle(negocio_id: int, headers: dict = Depends(get_user_headers)):
     async with httpx.AsyncClient() as client:
@@ -232,6 +240,8 @@ def debug_token(authorization: str = Header(...)):
     token = authorization.replace("Bearer ", "")
     user_id = obtener_user_id_desde_token(token)
     return {"user_id": user_id}
+
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=9000, reload=True)

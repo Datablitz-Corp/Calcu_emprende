@@ -7,28 +7,32 @@ from django.contrib.auth.models import User
 
 User = get_user_model()
 
-class RegisterSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        validators=[UniqueValidator(queryset=User.objects.all(), message="Este nombre de usuario ya está registrado.")]
-    )
-    email = serializers.EmailField(
-        validators=[UniqueValidator(queryset=User.objects.all(), message="Este correo electrónico ya está registrado.")]
-    )
 
-    class Meta:
-        model = User
-        fields = ['username', 'password', 'email', 'telefono', 'latitud', 'longitud']
-        extra_kwargs = {
-            'password': {'write_only': True},
-        }
 
-    def validate_telefono(self, value):
-        if not value.isdigit() or len(value) != 9:
-            raise serializers.ValidationError("El número de teléfono debe tener exactamente 9 dígitos.")
-        return value
+class AuditoriaSerializer(serializers.Serializer):
+    ip_address = serializers.CharField(max_length=50, required=False, allow_null=True, allow_blank=True)
+    navegador_dispositivo = serializers.CharField(max_length=255, required=False, allow_null=True, allow_blank=True)
+    acepta_terminos = serializers.BooleanField()
+    acepta_politicas = serializers.BooleanField()
 
-    def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(max_length=128, write_only=True)
+    email = serializers.EmailField()
+    tipo_documento = serializers.CharField(max_length=20, required=False, allow_null=True, allow_blank=True)
+    numero_documento = serializers.CharField(max_length=30, required=False, allow_null=True, allow_blank=True)
+    telefono = serializers.CharField(required=False, allow_blank=True)
+    latitud = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    longitud = serializers.DecimalField(max_digits=9, decimal_places=6, required=False)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+
+
+    auditoria = AuditoriaSerializer(required=False)
+
+
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -49,8 +53,17 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise serializers.ValidationError("La cuenta está inactiva.")
 
+        # Crear tokens
         refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Agregar campos personalizados
+        refresh['email'] = user.email
+        refresh['user'] = user.username
+        access['email'] = user.email
+        access['user'] = user.username
+
         return {
             'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            'access': str(access),
         }

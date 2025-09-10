@@ -10,6 +10,7 @@ import Resultado from "./pages/Resultado";
 import Configuracion from "./pages/Configuracion";
 import DetalleNegocio from "./pages/DetalleNegocio";
 import EditarNegocio from "./components/EditarNegocio";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -18,14 +19,14 @@ function App() {
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Register />} />
-        <Route path="/dashboard" element={<Negocio />} />
-        <Route path="/cuenta" element={<Cuenta />} />
-        <Route path="/asesoria" element={<Asesoria />} />
-        <Route path="/resultado" element={<Resultado />} />
-        <Route path="/configuracion" element={<Configuracion />} />
-        <Route path="/credito" element={<OpcionesCredito />} />
-        <Route path="/detalle/:negocioId" element={<DetalleNegocio />} />
-        <Route path="/editar-negocio/:id" element={<EditarNegocio />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Negocio /></ProtectedRoute>} />
+        <Route path="/cuenta" element={<ProtectedRoute><Cuenta /></ProtectedRoute>} />
+        <Route path="/asesoria" element={<ProtectedRoute><Asesoria /></ProtectedRoute>} />
+        <Route path="/resultado" element={<ProtectedRoute><Resultado /></ProtectedRoute>} />
+        <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
+        <Route path="/credito" element={<ProtectedRoute><OpcionesCredito /></ProtectedRoute>} />
+        <Route path="/detalle/:negocioId" element={<ProtectedRoute><DetalleNegocio /></ProtectedRoute>} />
+        <Route path="/editar-negocio/:id" element={<ProtectedRoute><EditarNegocio /></ProtectedRoute>} />
 
       </Routes>
     </Router>

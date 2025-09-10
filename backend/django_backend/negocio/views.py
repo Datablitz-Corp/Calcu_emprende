@@ -151,12 +151,14 @@ class ListaNegociosUsuarioView(APIView):
 
 
 ## Detalle de 1 negico  
+## Detalle de 1 negocio  
 class NegocioDetalleAPIView(APIView):
     def get(self, request, negocio_id):
         try:
             with connection.cursor() as cursor:
+                # 1. Llamamos al procedimiento de resumen del negocio
                 cursor.callproc("sp_resumen_negocio_json", [negocio_id])
-                result = cursor.fetchone()  # fetchone, no fetchall, ya que esperamos un solo negocio
+                result = cursor.fetchone()
 
                 if not result:
                     return Response({"detail": "Negocio no encontrado"}, status=404)
@@ -172,7 +174,21 @@ class NegocioDetalleAPIView(APIView):
                     except json.JSONDecodeError:
                         negocio["productos"] = []
 
-                return Response(negocio, status=200)
+            # 2. Llamamos al procedimiento del flujo de caja 12 meses
+            with connection.cursor() as cursor:
+                cursor.callproc("sp_flujo_caja_12_meses", [negocio_id])
+                flujo_result = cursor.fetchone()
+
+                if flujo_result and flujo_result[0]:
+                    try:
+                        # Parseamos el JSON que devuelve el SP
+                        negocio["flujo_caja"] = json.loads(flujo_result[0])
+                    except json.JSONDecodeError:
+                        negocio["flujo_caja"] = []
+                else:
+                    negocio["flujo_caja"] = []
+
+            return Response(negocio, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)

@@ -326,9 +326,17 @@ export default function Login() {
 
 
       if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
+        // Guardar en localStorage si marcó "Recordarme"
+        localStorage.setItem("token", response.data.access);
+        localStorage.setItem("refresh", response.data.refresh);
+        localStorage.setItem("rememberMe", "true");
+      } else {
+        // Guardar en sessionStorage si NO quiere recordar
+        sessionStorage.setItem("token", response.data.access);
+        sessionStorage.setItem("refresh", response.data.refresh);
       }
-      navigate('/dashboard');
+
+      navigate("/dashboard");
       
     } catch (err) {
       setError(err.response?.data?.message || "Error al iniciar sesión. Intente nuevamente.");

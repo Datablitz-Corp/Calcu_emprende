@@ -3,20 +3,59 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db import connection
-
+from django.db import transaction
 from .serializers import RegisterSerializer, LoginSerializer
+from django.contrib.auth.hashers import make_password
+
 
 class RegisterView(APIView):
     def post(self, request):
-        print("Request Data:", request.data)
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Usuario creado con éxito"}, status=status.HTTP_201_CREATED)
-        
-        print("Serializer Errors:", serializer.errors)  
-        # Este error sí lo puede entender FastAPI
-        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            data = serializer.validated_data
+            auditoria = data.get("auditoria", {})  # puede venir vacío
+
+            try:
+                hashed_password = make_password(data.get("password"))
+
+                with connection.cursor() as cursor:
+                    cursor.callproc("sp_register_user", [
+                        data.get("username"),
+                        hashed_password,
+                        data.get("first_name", ""),
+                        data.get("last_name", ""),
+                        data.get("email"),
+                        data.get("tipo_documento", ""),
+                        data.get("numero_documento", ""),
+                        data.get("latitud", 0),
+                        data.get("longitud", 0),
+                        data.get("telefono", ""),
+                        auditoria.get("ip_address", ""),
+                        auditoria.get("navegador_dispositivo", ""),
+                        auditoria.get("acepta_terminos", 0),
+                        auditoria.get("acepta_politicas", 0),
+                        0  # OUT p_user_id
+                    ])
+
+                    # Recuperar valor del parámetro OUT
+                    cursor.execute("SELECT @_%s_15" % "sp_register_user")
+                    user_id = cursor.fetchone()[0]
+
+                return Response({
+                    "message": "Usuario registrado correctamente",
+                    "user_id": user_id
+                }, status=status.HTTP_201_CREATED)
+
+            except Exception as e:
+                return Response({
+                    "error": str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
 
 class LoginView(APIView):
     def post(self, request):
