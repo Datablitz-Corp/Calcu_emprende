@@ -3,6 +3,12 @@ import numpy_financial as npf
 from decimal import Decimal
 import json
 import numpy as np
+from django.db import connection, DatabaseError
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+
 
 def calcular_var_tir_y_guardar(
     id_negocio,
@@ -130,3 +136,48 @@ def recrear_van_tir(
     except Exception as e:
         print("❌ Error en recrear_van_tir:", e)
         return None, None
+
+
+
+
+def calcular_tasa_descuento(rubro, capital_propio, prestamo, interes_prestamo):
+
+
+    # Caso: solo préstamo
+    if prestamo and not capital_propio:
+        return float(interes_prestamo)
+
+    # Caso: solo capital propio
+    if capital_propio and not prestamo:
+        # Buscar Beta (B) según rubro en BD
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT Beta FROM rubros_Damodaran WHERE Nombre_rubro = %s", [rubro])
+            result = cursor.fetchone()
+            beta_rubro = float(result[0]) if result else 1.0  
+
+        costo_oportunidad = 0.05  # 5%
+        riesgo_pais = 0.03        # 3%
+
+        return beta_rubro * (costo_oportunidad - riesgo_pais)
+
+    # Caso: ambos 
+    if capital_propio and prestamo:
+        total = capital_propio + prestamo
+        c = None
+        # Obtener c (capital propio ajustado al rubro)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT beta FROM rubros WHERE nombre = %s", [rubro])
+            result = cursor.fetchone()
+            beta_rubro = float(result[0]) if result else 1.0
+
+        costo_oportunidad = 0.05
+        riesgo_pais = 0.03
+        c = beta_rubro * (costo_oportunidad - riesgo_pais)
+
+        t = float(interes_prestamo)
+
+        return (prestamo / total) * t + (capital_propio / total) * c
+
+    # Si hay error
+    return 0.05 
+

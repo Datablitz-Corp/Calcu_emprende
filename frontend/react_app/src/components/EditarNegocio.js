@@ -90,7 +90,7 @@ export default function EditarNegocio() {
         interes: parseFloat(interesPrestamo) || 0,
         costos: [
           { tipo: "costosFijos", monto: parseFloat(costosFijos) || 0 },
-          { tipo: "costosVariables", monto: parseFloat(costosVariables) || 0 },
+          { tipo: "costosVariables", monto:  0 },
         ],
         productos: productos.map((p) => ({
           nombre: p.nombre,
@@ -166,10 +166,14 @@ if (loading) {
             <label>Costos fijos</label>
             <input type="number" className="form-control" value={costosFijos} onChange={(e) => setCostosFijos(e.target.value)} />
           </div>
+
+{/*
           <div className="col-md-6 mb-3">
             <label>Costos variables</label>
             <input type="number" className="form-control" value={costosVariables} onChange={(e) => setCostosVariables(e.target.value)} />
           </div>
+*/}
+
         </div>
   {/* Inversión 
         <div className="row">

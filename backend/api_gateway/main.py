@@ -114,6 +114,24 @@ async def login_user(data: dict):
 
 
 
+
+# ---------------------  Recuperacion Contraseña ----------------------
+
+
+@app.post("/password-reset/request/")
+async def proxy_request_reset(request: Request):
+    data = await request.json()
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{DJANGO_URL}/password-reset/request/", json=data)
+    return r.json()
+
+@app.post("/password-reset/confirm/")
+async def proxy_reset_confirm(request: Request):
+    data = await request.json()
+    async with httpx.AsyncClient() as client:
+        r = await client.post(f"{DJANGO_URL}/password-reset/confirm/", json=data)
+    return r.json()
+
 # ---------------------  Usuario ----------------------
 
 @app.get("/usuario")

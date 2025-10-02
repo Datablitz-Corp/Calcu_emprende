@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { Tooltip } from "bootstrap";
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from "react-router-dom";
 import Layout from "./Layout";
@@ -175,38 +174,32 @@ const getBusinessData = (businessName) => {
 export default function Negocio() {
   const [negocios, setNegocios] = useState([]);
   const [nombre, setNombre] = useState("");
-
-  const [rubro, setRubro] = useState("");
-
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [modoEdicion, setModoEdicion] = useState(false);
-  const [negocioEditando, setNegocioEditando] = useState(null);
-  const [productos, setProductos] = useState([]);
-  const [capitalPropio, setCapitalPropio] = useState("");
+
+const [capitalPropio, setCapitalPropio] = useState("");
   const [montoPrestamo, setMontoPrestamo] = useState("");
   const [interesPrestamo, setInteresPrestamo] = useState("");
   const [costosFijos, setCostosFijos] = useState("");
-
-  ////no hay
   const [costosVariables, setCostosVariables] = useState("");
+
+  const [productos, setProductos] = useState([]);
+
+
+
+  const [success, setSuccess] = useState("");
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [negocioEditando, setNegocioEditando] = useState(null);
 
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [datosPrevios, setDatosPrevios] = useState(null);
+
+
   ///id de negocio
   const [negocioId, setNegocioId] = useState(null);
 
- const [tooltip, setTooltip] = useState(null);
 
   const navigate = useNavigate();
-
-
-  useEffect(() => {
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(el => new Tooltip(el));
-  }, []);
-
 
   useEffect(() => {
     fetchNegocios();
@@ -214,24 +207,43 @@ export default function Negocio() {
 
   const fetchNegocios = async () => {
   try {
+    console.log("🔍 Iniciando fetchNegocios...");
+
+    ///const token = localStorage.getItem('token');
     const token = localStorage.getItem('token');
+
     const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-    const { data } = await axios.get(`${api}/negocios/`, {
+    console.log("🔗 API usada:", api);
+    console.log("🔑 Token usado:", token);
+
+
+    const response = await axios.get(`${api}/negocios/`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-     console.log("📦 Data obtenida:", data);
+    console.log("✅ Respuesta completa de la API:", response);
 
-      const negociosConImagenes = data.map((negocio) => ({
+    const { data } = response;
+    console.log("📦 Data obtenida:", data);
+
+    const negociosConImagenes = data.map(negocio => {
+      console.log("➡️ Procesando negocio:", negocio);
+      const negocioConImagen = {
         ...negocio,
         ...getBusinessData(negocio.Nombre || negocio.nombre_negocio),
-      }));
-      setNegocios(negociosConImagenes);
-    } catch (e) {
-      console.error("Error al obtener negocios:", e);
-      setError("No se pudieron cargar los negocios");
-    }
-  };
+      };
+      console.log("🖼️ Negocio con imagen:", negocioConImagen);
+      return negocioConImagen;
+    });
+
+    setNegocios(negociosConImagenes);
+    console.log("🎯 Negocios finales seteados:", negociosConImagenes);
+
+  } catch (e) {
+    console.error("❌ Error al obtener negocios:", e);
+    setError("No se pudieron cargar los negocios");
+  }
+};
 
 
   const agregarProducto = () => {
@@ -271,19 +283,17 @@ export default function Negocio() {
     try {
       const token = localStorage.getItem('token');
       const decodedToken = jwtDecode(token);
+      
       const idUsuario = decodedToken.user_id;
 
-      //// no se esta usando hasta nuevo aviso
       const costos = [
         { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
-       // { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
-        { tipo: "costosVariables", monto: 0 },
+        { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
       ];
 
       const payload = {
         id_usuario: idUsuario,
         nombre_negocio: nombre,
-        rubro: rubro,
         capital_propio: parseFloat(capitalPropio) || 0,
         prestamo: parseFloat(montoPrestamo) || 0,
         interes: parseFloat(interesPrestamo) || 0,
@@ -325,8 +335,6 @@ export default function Negocio() {
     setMostrarConfirmacion(false);
   };
 
-  
-  ////////////// me quede aqui ver esto 
 
   //// editar negocio
   const actualizarNegocio = async () => {
@@ -339,18 +347,16 @@ export default function Negocio() {
 
       const costos = [
         { tipo: "costosFijos", monto: parseFloat(costosFijos) || 0 },
-        ///{ tipo: "costosVariables", monto: parseFloat(costosVariables) || 0 },
-        { tipo: "costosVariables", monto: 0 },
+        { tipo: "costosVariables", monto: parseFloat(costosVariables) || 0 },
       ];
 
       const payload = {
         id_usuario: idUsuario,
         nombre_negocio: nombre,
-        rubro: rubro,
         capital_propio: parseFloat(capitalPropio) || 0,
         prestamo: parseFloat(montoPrestamo) || 0,
         interes: parseFloat(interesPrestamo) || 0,
-        costos: costos,
+        costos,
         productos: productos.map((p) => ({
           nombre: p.nombre,
           precv: parseFloat(p.precio) || 0,
@@ -444,8 +450,7 @@ export default function Negocio() {
       setMontoPrestamo(detalle.prestamo || detalle.monto_prestamo || "");
       setInteresPrestamo(detalle.interes || detalle.interes_prestamo || "");
       setCostosFijos(detalle.costos_fijos || "");
-      //setCostosVariables(detalle.costos_variables || "");
-      setCostosVariables(0);
+      setCostosVariables(detalle.costos_variables || "");
 
       let productosFormateados = [];
       try {
@@ -477,7 +482,6 @@ export default function Negocio() {
     setShowModal(false);
     setModoEdicion(false);
     setNegocioEditando(null);
-    setRubro("");
     setNombre("");
     setError("");
     setCapitalPropio("");
@@ -488,8 +492,6 @@ export default function Negocio() {
     setProductos([]);
   };
 
-
-  ////////////// me quede aqui ver esto 
   return (
     <Layout>
       <div className="container mt-4" style={{ backgroundColor: colors.background }}>
@@ -753,8 +755,6 @@ export default function Negocio() {
                     </div>
                   )}
                   
-                  {/* Nombre y Rubro */}
-
                   <div className="mb-4">
                     <label htmlFor="nombreNegocio" className="form-label fw-bold" style={{ color: colors.text }}>
                       Nombre del Negocio
@@ -774,50 +774,15 @@ export default function Negocio() {
                     />
                     <small className="text-muted">Máximo 50 caracteres</small>
                   </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Rubro</label>
-                    <select 
-                      className="form-select"
-                      value={rubro}
-                      onChange={(e) => setRubro(e.target.value)}
-                    >
-                      <option value="">Seleccione un rubro</option>
-                      <option value="comida">Comida</option>
-                      <option value="ventas">Ventas</option>
-                      <option value="servicios">Servicios</option>
-                      <option value="tecnologia">Tecnología</option>
-                      <option value="salud">Salud</option>
-                      <option value="educacion">Educación</option>
-                      <option value="transporte">Transporte</option>
-                      <option value="mascotas">Mascotas</option>
-                      <option value="construccion">Construcción</option>
-                      <option value="agricultura">Agricultura</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                  </div>
-
-
-
-                  
                   
                   <div className="mb-4">
                     <h6 className="fw-bold mb-3" style={{ color: colors.text }}>
                       Información Financiera
                     </h6>
                     <div className="row g-3">
-
-                      {/* Capital */}
                       <div className="col-md-6">
-                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
+                        <label className="form-label" style={{ color: colors.text }}>
                           Capital propio
-                          <i
-                            className="bi bi-exclamation-circle ms-2"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="right"
-                            title="Tus ahorros, es decir tu dinero propio el cual no debes devolverlo ni pagar un interés por él."
-                            style={{ cursor: "pointer", color: "#0d6efd" }}
-                          ></i>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text">$</span>
@@ -829,19 +794,9 @@ export default function Negocio() {
                           />
                         </div>
                       </div>
-
-
-                      {/* Monto Prestamo*/}
                       <div className="col-md-6">
-                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
+                        <label className="form-label" style={{ color: colors.text }}>
                           Monto préstamo
-                          <i
-                            className="bi bi-exclamation-circle ms-2"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="right"
-                            title="El dinero que te prestó el banco u otra persona, la que le debes pagar con un interés."
-                            style={{ cursor: "pointer", color: "#0d6efd" }}
-                          ></i>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text">$</span>
@@ -853,19 +808,9 @@ export default function Negocio() {
                           />
                         </div>
                       </div>
-
-
-                      {/* Interes */}
                       <div className="col-md-6">
-                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
+                        <label className="form-label" style={{ color: colors.text }}>
                           Interés del préstamo (%)
-                          <i
-                            className="bi bi-exclamation-circle ms-2"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="right"
-                            title="El porcentaje del interés que deberás pagar. Ejm: 10% adicional del préstamo."
-                            style={{ cursor: "pointer", color: "#0d6efd" }}
-                          ></i>
                         </label>
                         <div className="input-group">
                           <input
@@ -878,19 +823,9 @@ export default function Negocio() {
                           <span className="input-group-text">%</span>
                         </div>
                       </div>
-
-
-                      {/* Costos */}
                       <div className="col-md-6">
-                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
+                        <label className="form-label" style={{ color: colors.text }}>
                           Costos fijos mensuales
-                          <i
-                            className="bi bi-exclamation-circle ms-2"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="right"
-                            title="Los costos mensuales de tu negocio. Ejm: alquiler, sueldos, luz, agua, internet."
-                            style={{ cursor: "pointer", color: "#0d6efd" }}
-                          ></i>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text">$</span>
@@ -902,43 +837,24 @@ export default function Negocio() {
                           />
                         </div>
                       </div>
-
-
-
-{/*
-
                       <div className="col-md-6">
                         <label className="form-label" style={{ color: colors.text }}>
                           Costos variables (% de ventas)
                         </label>
                         <div className="input-group">
-
-
-  */}
-
                           <input
-                            type="hidden"
+                            type="number"
                             step="0.01"
                             className="form-control"
                             value={costosVariables}
-                            //onChange={(e) => setCostosVariables(e.target.value)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setCostosVariables(value === "" ? 0 : parseFloat(value));
-                            }}
+                            onChange={(e) => setCostosVariables(e.target.value)}
                           />
-
-{/*
                           <span className="input-group-text">%</span>
                         </div>
                       </div>
-  */}
-
-
                     </div>
                   </div>
                   
-                  {/* Productos o Servicio*/}
                   <div className="mb-4">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h6 className="fw-bold mb-0" style={{ color: colors.text }}>
@@ -961,14 +877,7 @@ export default function Negocio() {
                         <i className="bi bi-plus-circle me-1"></i> Agregar
                       </motion.button>
                     </div>
-
-                    {/* Nota explicativa */}
-                    <p style={{ fontSize: "0.9rem", color: "gray" }}>
-                      Recuerda agregar todos tus productos o servicios para una mejor evaluación.  
-                      Ejm: en mi negocio se vende arroz con huevo, coca cola y el combo 1 que se compone de arroz con huevo y coca cola.  
-                      Por lo tanto, se deben agregar 3 productos.
-                    </p>
-
+                    
                     {productos.map((p, index) => (
                       <motion.div 
                         key={index} 
@@ -980,7 +889,6 @@ export default function Negocio() {
                         transition={{ duration: 0.2 }}
                       >
                         <div className="row g-3">
-                          {/* Nombre */}
                           <div className="col-md-6">
                             <label className="form-label" style={{ color: colors.text }}>
                               Nombre
@@ -993,8 +901,6 @@ export default function Negocio() {
                               placeholder="Nombre del producto"
                             />
                           </div>
-
-                          {/* Precio */}
                           <div className="col-md-6">
                             <label className="form-label" style={{ color: colors.text }}>
                               Precio de venta
@@ -1010,23 +916,9 @@ export default function Negocio() {
                               />
                             </div>
                           </div>
-
-                          {/* Costo con tooltip */}
-                          <div className="col-md-6" style={{ position: "relative" }}>
+                          <div className="col-md-6">
                             <label className="form-label" style={{ color: colors.text }}>
-                              Costo unitario{" "}
-                              <i
-                                className="bi bi-exclamation-circle ms-1"
-                                style={{
-                                  cursor: "pointer",
-                                  color: tooltip === `costo-${index}` ? colors.primary : "gray",
-                                }}
-                                onMouseEnter={() => setTooltip(`costo-${index}`)}
-                                onMouseLeave={() => setTooltip(null)}
-                                onClick={() =>
-                                  setTooltip(tooltip === `click-costo-${index}` ? null : `click-costo-${index}`)
-                                }
-                              ></i>
+                              Costo unitario
                             </label>
                             <div className="input-group">
                               <span className="input-group-text">$</span>
@@ -1038,48 +930,10 @@ export default function Negocio() {
                                 onChange={(e) => actualizarProducto(index, "costo", e.target.value)}
                               />
                             </div>
-
-                            {tooltip === `click-costo-${index}` && (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "100%",
-                                  left: "0",
-                                  zIndex: 10,
-                                  background: "#fff",
-                                  border: "1px solid #ddd",
-                                  borderRadius: "8px",
-                                  padding: "8px",
-                                  width: "100%",
-                                  fontSize: "0.85rem",
-                                  marginTop: "4px",
-                                }}
-                              >
-                                Es el costo de cada uno de tus productos. Ejemplo 1: el paquete de gaseosas
-                                está S/10 y vienen 10 gaseosas, entonces el costo unitario es de S/1.  
-                                Ejemplo 2: para preparar arroz con huevo necesito 30 gr de arroz (S/0.08) 
-                                y un huevo (S/0.85). El costo unitario sería de S/0.93, la suma de ambos.  
-                                Mientras más aproximado sea, mejor la evaluación.
-                              </div>
-                            )}
                           </div>
-
-                          {/* Cantidad con tooltip */}
-                          <div className="col-md-6" style={{ position: "relative" }}>
+                          <div className="col-md-6">
                             <label className="form-label" style={{ color: colors.text }}>
-                              Cantidad esperada{" "}
-                              <i
-                                className="bi bi-exclamation-circle ms-1"
-                                style={{
-                                  cursor: "pointer",
-                                  color: tooltip === `cant-${index}` ? colors.primary : "gray",
-                                }}
-                                onMouseEnter={() => setTooltip(`cant-${index}`)}
-                                onMouseLeave={() => setTooltip(null)}
-                                onClick={() =>
-                                  setTooltip(tooltip === `click-cant-${index}` ? null : `click-cant-${index}`)
-                                }
-                              ></i>
+                              Cantidad esperada
                             </label>
                             <input
                               type="number"
@@ -1087,32 +941,7 @@ export default function Negocio() {
                               value={p.cantidad}
                               onChange={(e) => actualizarProducto(index, "cantidad", e.target.value)}
                             />
-
-                            {tooltip === `click-cant-${index}` && (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: "100%",
-                                  left: "0",
-                                  zIndex: 10,
-                                  background: "#fff",
-                                  border: "1px solid #ddd",
-                                  borderRadius: "8px",
-                                  padding: "8px",
-                                  width: "100%",
-                                  fontSize: "0.85rem",
-                                  marginTop: "4px",
-                                }}
-                              >
-                                Es la cantidad que esperas vender al mes de tu producto.  
-                                Mientras más precisa sea esta información mejor será la evaluación.  
-                                Lo puedes estimar mediante encuestas, observando negocios parecidos 
-                                o preguntando a negocios similares.
-                              </div>
-                            )}
                           </div>
-
-                          {/* Botón eliminar */}
                           <div className="col-12 text-end">
                             <motion.button
                               className="btn btn-sm"
@@ -1136,7 +965,6 @@ export default function Negocio() {
                       </motion.div>
                     ))}
                   </div>
-
                 </div>
                 
                 <div className="modal-footer" style={{ borderTopColor: colors.border }}>

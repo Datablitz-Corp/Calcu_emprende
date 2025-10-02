@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getToken, getUser_tok, logout } from "../utils/auth";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import 'bootstrap/dist/css/bootstrap.min.css';
 
-// Color scheme
+// Colores
 const colors = {
-  primary: '#2A9D8F',     // Verde petróleo – profesional, calmado, confiable
-  secondary: '#64C9B7',   // Verde menta – fresco, limpio, suave para fondos o detalles
-  accent: '#F4EBC1',      // Beige claro – destaca sin gritar
-  background: '#FBFBF8',  // Gris muy claro cálido – evita el blanco puro
-  text: '#2F2F2F',        // Gris oscuro – más suave que negro
-  accent2: '#E0F2E9',     // Verde muy claro – para zonas suaves o hover
+  primary: '#2A9D8F',
+  secondary: '#64C9B7',
+  accent: '#F4EBC1',
+  background: '#FBFBF8',
+  text: '#2F2F2F',
+  accent2: '#E0F2E9',
   lightText: '#FFFFFF',
-  border: '#DADAD5'       // Gris claro neutro
+  border: '#DADAD5'
 };
 
 const styles = {
@@ -35,22 +36,19 @@ const styles = {
     textDecoration: 'none',
     opacity: 0.8
   },
-
-}
+};
 
 function Layout({ children }) {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [open, setOpen] = useState(false); // estado del dropdown
 
   useEffect(() => {
     const token = getToken();
-    console.log("Access Token:", token); 
-    
     if (!token) {
       navigate("/login");
     } else {
       const userData = getUser_tok();
-      console.log("Decoded User:", userData); 
       setUser(userData);
     }
   }, [navigate]);
@@ -59,8 +57,6 @@ function Layout({ children }) {
     logout();
     navigate("/login");
   };
-
-
 
   return (
     <motion.div 
@@ -74,8 +70,7 @@ function Layout({ children }) {
         flexDirection: "column",
       }}
     >
-      {/* Background Color blanco*/}
-
+      {/* Fondo blanco */}
       <motion.div 
         style={{
           position: 'absolute',
@@ -88,8 +83,7 @@ function Layout({ children }) {
         }}
       />
 
-
-      {/* Barra superior unificada */}
+      {/* Navbar */}
       <motion.div 
         className="py-3" 
         style={{ 
@@ -104,7 +98,7 @@ function Layout({ children }) {
       >
         <div className="container d-flex align-items-center justify-content-between text-white flex-wrap">
 
-          {/* Izquierda: Título y saludo */}
+          {/* Izquierda: título */}
           <motion.div 
             className="me-4"
             initial={{ x: -20, opacity: 0 }}
@@ -151,17 +145,11 @@ function Layout({ children }) {
 
           {/* Derecha: perfil */}
           {user && (
-            <motion.div 
-              className="dropdown"
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
+            <div className="position-relative">
               <button
-                className="btn dropdown-toggle d-flex align-items-center"
+                className="btn d-flex align-items-center"
                 type="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
+                onClick={() => setOpen(!open)} // toggle dropdown
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none'
@@ -181,57 +169,62 @@ function Layout({ children }) {
                 />
                 <span style={{ color: colors.lightText }}>{user.nombre}</span>
               </button>
-              <motion.ul 
-                className="dropdown-menu dropdown-menu-end" 
-                style={{
-                  backgroundColor: colors.background,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '8px'
-                }}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <motion.li whileHover={{ scale: 1.02 }}>
-                  <button 
-                    className="dropdown-item" 
-                    onClick={() => navigate("/cuenta")}
+
+              <AnimatePresence>
+                {open && (
+                  <motion.ul 
+                    className="dropdown-menu dropdown-menu-end show"
                     style={{
-                      color: colors.text,
+                      backgroundColor: colors.background,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: '8px',
+                      position: 'absolute',
+                      top: "100%",
+                      right: 0,
+                      marginTop: "8px"
                     }}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 20, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    Cuenta
-                  </button>
-                </motion.li>
-                <motion.li whileHover={{ scale: 1.02 }}>
-                  <button 
-                    className="dropdown-item"
-                    style={{
-                      color: colors.text,
-                    }}
-                  >
-                    Configuración
-                  </button>
-                </motion.li>
-                <li><hr className="dropdown-divider" /></li>
-                <motion.li whileHover={{ scale: 1.02 }}>
-                  <button 
-                    className="dropdown-item" 
-                    onClick={handleLogout}
-                    style={{
-                      color: '#E76F51',
-                    }}
-                  >
-                    Cerrar sesión
-                  </button>
-                </motion.li>
-              </motion.ul>
-            </motion.div>
+                    <li>
+                      <button 
+                        className="dropdown-item" 
+                        onClick={() => { setOpen(false); navigate("/cuenta"); }}
+                        style={{ color: colors.text }}
+                      >
+                        Cuenta
+                      </button>
+                    </li>
+                    <li>
+                      <button 
+                        className="dropdown-item"
+                        onClick={() => setOpen(false)}
+                        style={{ color: colors.text }}
+                      >
+                        Configuración
+                      </button>
+                    </li>
+                    <li><hr className="dropdown-divider" /></li>
+                    <li>
+                      <button 
+                        className="dropdown-item" 
+                        onClick={() => { setOpen(false); handleLogout(); }}
+                        style={{ color: '#E76F51' }}
+                      >
+                        Cerrar sesión
+                      </button>
+                    </li>
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
       </motion.div>
 
-      {/* Contenido principal */}
+      {/* Contenido */}
       <motion.main 
         className="container mt-4 flex-grow-1" 
         style={{ position: 'relative'}}
@@ -242,6 +235,7 @@ function Layout({ children }) {
         {children}
       </motion.main>
 
+      {/* Footer */}
       <footer style={styles.footer}>
         <div style={styles.footerLinks}>
           <Link to="/nosotros" style={styles.footerLink}>Nosotros</Link>
@@ -252,12 +246,7 @@ function Layout({ children }) {
         </div>
         <p>© {new Date().getFullYear()} EmprendePe. Todos los derechos reservados.</p>
       </footer>
-
     </motion.div>
-
-
-
-
   );
 }
 

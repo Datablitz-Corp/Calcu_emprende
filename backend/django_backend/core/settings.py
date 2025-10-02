@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'producto_servicio',
     'producto_negocio',
     'flujo_caja',
-    'resultados_negocio',
+    'resultados_negocio'
 ]
 
 

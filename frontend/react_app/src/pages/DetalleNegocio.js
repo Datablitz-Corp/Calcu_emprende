@@ -6,10 +6,23 @@ import { getToken } from "../utils/auth";
 import { motion } from "framer-motion";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  LabelList,
+  ResponsiveContainer
+} from "recharts";
+
 
 const colors = {
   primary: "#2A9D8F",
-  secondary: "#64C9B7",
+  secondary: "#F87171", // rojo para negativo
+  positive: "#2A9D8F",  // verde para positivo
   accent: "#F8F9FA",
   text: "#2F2F2F",
   border: "#DADAD5",
@@ -29,8 +42,8 @@ function DetalleNegocio() {
         const response = await axios.get(`${api}/detalle-negocio/${negocioId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        
         const data = response.data;
+
         if (data?.productos && typeof data.productos === "string") {
           try { data.productos = JSON.parse(data.productos); } 
           catch { data.productos = []; }
@@ -61,10 +74,24 @@ function DetalleNegocio() {
     );
   }
 
+  // Preparar datos del flujo de caja para Recharts
+  const flujoData = (negocio.flujo_caja || []).map((item) => ({
+    name: `Mes ${item.periodo}`,
+    value: item.flujo_neto,
+    fill: item.flujo_neto < 0 ? colors.secondary : colors.positive
+  }));
+
+
   return (
     <Layout>
       <div className="container mt-5">
-        <motion.h2 className="fw-bold mb-5 text-center" style={{ color: colors.primary }} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+        {/* Nombre del negocio */}
+        <motion.h2
+          className="fw-bold mb-5 text-center"
+          style={{ color: colors.primary }}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           {negocio.nombre_negocio}
         </motion.h2>
 
@@ -92,7 +119,7 @@ function DetalleNegocio() {
                 <p className="text-muted mt-2">
                   {negocio.TIR > 0
                     ? "✅ La TIR es positiva, significa que tu negocio genera una tasa de retorno atractiva frente al costo de inversión."
-                    : "⚠️ La TIR es negativa, el negocio no logra superar el costo de la inversión. La rentabilidad es baja o nula."}
+                    : "⚠️ La TIR es negativa, el negocio no logra superar el costo de la inversión. La rentabilidad es nula."}
                 </p>
               </div>
             </div>
@@ -100,19 +127,73 @@ function DetalleNegocio() {
         </div>
 
         {/* Flujo de caja */}
-        {negocio.flujo_caja && negocio.flujo_caja.length > 0 && (
-          <div className="mb-5">
-            <h4 className="fw-bold mb-3" style={{ color: colors.primary }}>Flujo de caja - 12 meses</h4>
-            <div className="d-flex flex-wrap gap-3">
-              {negocio.flujo_caja.map((item, index) => (
-                <div key={index} className="p-3 text-center rounded shadow-sm" style={{ minWidth: "80px", backgroundColor: colors.accent, border: `1px solid ${colors.border}` }}>
-                  <div className="badge bg-secondary mb-1">Mes {item.periodo}</div>
-                  <div>S/ {item.flujo_neto}</div>
-                </div>
-              ))}
-            </div>
+        <div className="mb-4">
+          <h4 className="fw-bold mb-3" style={{ color: colors.primary }}>Flujo de caja - 12 meses</h4>
+          <div style={{ width: "100%", height: 400 }}>
+
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={flujoData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" tick={{ fontWeight: "bold", fontSize: 14 }} />
+                <YAxis
+                  domain={['dataMin - 400', 'dataMax + 400']}
+                  allowDecimals={true}
+                  tickFormatter={(value) => value.toFixed(0)}
+                />
+                <Tooltip formatter={(value) => `S/ ${value.toFixed(0)}`} />
+                <ReferenceLine y={0} stroke="#000" strokeWidth={1} />
+ 
+
+                <Bar dataKey="value" barSize={50} radius={[8, 8, 0, 0]}>
+                  <LabelList
+                    dataKey="value"
+                    content={(props) => {
+                      const { x, y, width, value } = props;
+
+                      // Posición del label dependiendo del signo
+                      const posY = value >= 0 ? y - 10 : y + 20;
+
+                      // Color dinámico según signo
+                      const labelColor = value >= 0 ? "#2A9D8F" : "#FF6B6B";
+
+                      return (
+                        <text
+                          x={x + width / 2}
+                          y={posY}
+                          textAnchor="middle"
+                          fill={labelColor}
+                          fontWeight="bold"
+                        >
+                          S/ {value.toFixed(0)}
+                        </text>
+                      );
+                    }}
+                  />
+                </Bar>
+
+
+              </BarChart>
+            </ResponsiveContainer>
+
+
           </div>
-        )}
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center mb-5">
+          <motion.a
+            href="#"
+            className="btn btn-lg fw-bold"
+            style={{ backgroundColor: colors.primary, color: "#fff", borderRadius: "12px", padding: "12px 30px" }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            ¿Quieres recibir asesoría financiera? Haz clic aquí
+          </motion.a>
+        </div>
 
         {/* Capital, préstamo y costos */}
         <div className="row g-4 mb-5">

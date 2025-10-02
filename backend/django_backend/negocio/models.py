@@ -16,6 +16,7 @@ class Negocio(models.Model):
     ID_costo = models.BigIntegerField(null=True, blank=True)
     ID_inversion = models.BigIntegerField(null=True, blank=True)
     Nombre = models.CharField(max_length=100, null=True, blank=True)
+    rubro = models.CharField(max_length=100, null=True, blank=True)
 
     class Meta:
             db_table = 'negocio'
