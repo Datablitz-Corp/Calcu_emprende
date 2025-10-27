@@ -22,10 +22,13 @@ const Register = () => {
 
   // Obtener geolocalización
   useEffect(() => {
-    if (navigator.geolocation) {
+    const alreadyAsked = localStorage.getItem("geoAsked");
+
+    if (!alreadyAsked && navigator.geolocation) {
       const confirmed = window.confirm(
         "Para una mejor experiencia, necesitamos tu ubicación. ¿Deseas continuar?"
       );
+
       if (confirmed) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -37,28 +40,28 @@ const Register = () => {
           },
           (error) => {
             console.error("Error al obtener ubicación:", error);
+            // Error => Null
             setForm(prev => ({
               ...prev,
-              latitud: "0",
-              longitud: "0"
+              latitud: null,
+              longitud: null,
             }));
           }
         );
       } else {
+        // Usuario rechazó => 0
         setForm(prev => ({
           ...prev,
           latitud: "0",
           longitud: "0"
         }));
       }
-    } else {
-      setForm(prev => ({
-        ...prev,
-        latitud: "0",
-        longitud: "0"
-      }));
+
+      // marcar como ya preguntado
+      localStorage.setItem("geoAsked", "true");
     }
   }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -509,7 +512,7 @@ const Register = () => {
         </motion.p>
       </motion.div>
 
-      {/* Modales para términos y políticas */}
+      {/* Modales */}
       <TermsModal type="terms" id="termsModal" />
       <TermsModal type="privacy" id="privacyModal" />
       <TermsModal type="dataPolicy" id="dataPolicyModal" />

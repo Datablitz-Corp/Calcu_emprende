@@ -5,51 +5,7 @@ from rest_framework import status
 import traceback
 from django.db import connection, DatabaseError
 import json
-from .funciones import calcular_var_tir_y_guardar, recrear_van_tir
-
-
-
-# crear negocio con (van y tir)  procedimiento
-class CrearNegocioCompletoView(APIView):
-    def post(self, request):
-        data = request.data
-        try:
-            user_id = data.get('id_usuario')
-            nombre_negocio = data.get('nombre_negocio')
-            capital_propio = data.get('capital_propio')
-            prestamo = data.get('prestamo')
-            interes = data.get('interes')
-            costos = data.get('costos')
-            productos = data.get('productos')
-            tasa_descuento = data.get('tasa_descuento', 10.0)  # Valor por defecto si no se envía
-
-            if not user_id or not nombre_negocio:
-                return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
-
-            with connection.cursor() as cursor:
-                cursor.execute("SET @p_negocio_id = NULL")
-                cursor.execute("""
-                    CALL sp_insertar_negocio_y_generar_resultados(%s, %s, %s, %s, %s, %s, %s, %s, @p_negocio_id)
-                """, [
-                    user_id,
-                    nombre_negocio,
-                    capital_propio,
-                    prestamo,
-                    interes,
-                    json.dumps(costos),
-                    json.dumps(productos),
-                    tasa_descuento
-                ])
-                cursor.execute("SELECT @p_negocio_id")
-                result = cursor.fetchone()
-                negocio_id = result[0] if result else None
-
-            return Response({"message": "Negocio creado con éxito", "negocio_id": negocio_id}, status=status.HTTP_201_CREATED)
-        except DatabaseError as e:
-            return Response({"error": f"Error en la base de datos: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-
+from .funciones import calcular_var_tir_y_guardar, recrear_van_tir,calcular_tasa_descuento
 
 
 # crear negocio  (var y tir) backend
@@ -59,12 +15,15 @@ class CrearNegocioCompleto_VAN_TIR(APIView):
         try:
             user_id = data.get('id_usuario')
             nombre_negocio = data.get('nombre_negocio')
+            rubro = data.get('rubro')
             capital_propio = data.get('capital_propio')
             prestamo = data.get('prestamo')
             interes = data.get('interes')
             costos = data.get('costos')
             productos = data.get('productos')
-            tasa_descuento = data.get('tasa_descuento', 10.0)
+            #tasa_descuento = data.get('tasa_descuento', 10.0)
+
+            
 
             if not user_id or not nombre_negocio:
                 return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
@@ -72,22 +31,36 @@ class CrearNegocioCompleto_VAN_TIR(APIView):
             with connection.cursor() as cursor:
                 cursor.execute("SET @p_negocio_id = NULL")
                 cursor.execute("""
-                    CALL sp_insertar_negocio_completo(%s, %s, %s, %s, %s, %s, %s, @p_negocio_id)
+                    CALL sp_insertar_negocio_completo(%s, %s, %s, %s, %s, %s, %s, %s, @p_negocio_id)
                 """, [
-                    user_id,
-                    nombre_negocio,
-                    capital_propio,
-                    prestamo,
-                    interes,
-                    json.dumps(costos),
-                    json.dumps(productos),
+                    user_id,                # p_id_usuario
+                    nombre_negocio,         # p_nombre_negocio
+                    capital_propio,         # p_capital_propio
+                    prestamo,               # p_prestamo
+                    interes,                # p_interes
+                    json.dumps(costos),     # p_costos
+                    json.dumps(productos),  # p_productos
+                    rubro                   # p_rubro 
                 ])
+
+
                 cursor.execute("SELECT @p_negocio_id")
                 result = cursor.fetchone()
                 negocio_id = result[0] if result else None
 
             if not negocio_id:
                 return Response({"error": "No se pudo crear el negocio"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+            tasa_descuento = calcular_tasa_descuento(
+                rubro=rubro,
+                capital_propio=capital_propio,
+                prestamo=prestamo,
+                interes_prestamo=interes
+            )
+
+
+
 
             # Calcular VAN y TIR y guardar flujos
             productos_convertidos = [
@@ -121,20 +94,6 @@ class CrearNegocioCompleto_VAN_TIR(APIView):
 
 
 
-# crear negocio solo nombre
-class CrearNegocioView(APIView):
-    def post(self, request):
-        user_id = request.data.get('ID_usuario')
-        nombre = request.data.get('Nombre')
-
-        try:
-            with connection.cursor() as cursor:
-                # sp_insertar_negocio_y_generar_resultados, sp_insertar_negocio
-                cursor.callproc('sp_insertar_negocio', [user_id, nombre])
-            return Response({"message": "Negocio creado con éxito"}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 # listar los negocios por usuario en el dashboard
 class ListaNegociosUsuarioView(APIView):
@@ -151,7 +110,6 @@ class ListaNegociosUsuarioView(APIView):
 
 
 ## Detalle de 1 negico  
-## Detalle de 1 negocio  
 class NegocioDetalleAPIView(APIView):
     def get(self, request, negocio_id):
         try:
@@ -200,6 +158,7 @@ class ActualizarNegocioView(APIView):
             print("DATA RECIBIDA:", json.dumps(request.data, indent=2))
 
             nombre = request.data.get("nombre_negocio")
+            rubro = request.data.get('rubro')
             capital = request.data.get("capital_propio")
             prestamo = request.data.get("prestamo")
             interes = request.data.get("interes")  # <- interes_anual
@@ -213,6 +172,7 @@ class ActualizarNegocioView(APIView):
                     cursor.callproc("sp_actualizar_negocio_completo_sin_var_tir", [
                         negocio_id,
                         nombre,
+                        rubro,
                         capital,
                         prestamo,
                         interes,

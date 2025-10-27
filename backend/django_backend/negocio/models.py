@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-
+from rubros_Damodaran.models import RubrosDamodaran
 User = get_user_model()
 
 class Negocio(models.Model):
@@ -17,6 +17,8 @@ class Negocio(models.Model):
     ID_inversion = models.BigIntegerField(null=True, blank=True)
     Nombre = models.CharField(max_length=100, null=True, blank=True)
 
+    rubro = models.IntegerField(db_column='ID_rubro', null=True, blank=True)
+    
     class Meta:
             db_table = 'negocio'
 

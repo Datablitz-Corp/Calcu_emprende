@@ -51,6 +51,31 @@ async def get_user_headers(token: str = Depends(oauth2_scheme)):
     return {"Authorization": f"Bearer {token}"}
 
 
+
+def _forward_headers(request: Request) -> dict:
+    """
+    Reenvía Authorization si el front lo manda.
+    Si no usas auth para esta ruta, igual no molesta.
+    """
+    h = {}
+    auth = request.headers.get("authorization")
+    if auth:
+        h["Authorization"] = auth
+    return h
+
+def _safe_json(resp: requests.Response):
+    try:
+        return resp.json()
+    except ValueError:
+        # Upstream devolvió HTML/texto -> envía texto plano
+        return {"detail": resp.text, "status": resp.status_code}
+
+
+
+
+
+
+
 #  RUTAS  ###########  GET / POST / DELET 
 
 
@@ -114,6 +139,13 @@ async def login_user(data: dict):
 
 
 
+
+# ---------------------  Recuperacion Contraseña ----------------------
+
+
+
+
+
 # ---------------------  Usuario ----------------------
 
 @app.get("/usuario")
@@ -133,6 +165,41 @@ async def update_usuario(request: Request, headers: dict = Depends(get_user_head
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=response.text)
     return response.json()
+
+
+# --------------------- RUBRO -------------------------
+
+@app.get("/listar")
+def listar_rubros(request: Request, search: str = "", order: str = ""):
+    """
+    Proxyea a Django: /listar/?search=&order=
+    Tu SP sp_rubros_listar espera (p_search, p_order).
+    """
+    try:
+        upstream = requests.get(
+            f"{DJANGO_API_URL}/listar/",
+            headers=_forward_headers(request),
+            params={"search": search, "order": order},
+            timeout=10,
+        )
+        # Log opcional para depurar:
+        print(f"📌 Respuesta Django: {upstream.status_code} {upstream.text[:1200]}")
+        return JSONResponse(status_code=upstream.status_code, content=_safe_json(upstream))
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Django upstream error: {e}")
+
+@app.get("/{id_rubro}")
+def rubro_por_id(id_rubro: int, request: Request):
+    try:
+        upstream = requests.get(
+            f"{DJANGO_API_URL}/{id_rubro}/",
+            headers=_forward_headers(request),
+            timeout=10,
+        )
+        print(f"📌 Respuesta Django: {upstream.status_code} {upstream.text[:600]}")
+        return JSONResponse(status_code=upstream.status_code, content=_safe_json(upstream))
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Django upstream error: {e}")
 
 
 # ---------------------  NEGOCIOS ----------------------

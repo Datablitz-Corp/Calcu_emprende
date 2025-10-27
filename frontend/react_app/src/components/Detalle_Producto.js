@@ -74,7 +74,8 @@ export default function Negocio() {
     // Crear el arreglo de costos por ahora
       const costos = [
         { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
-        { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
+       // { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
+        { tipo: "costosVariables", monto: 0 },
       ];
 
       const payload = {
@@ -306,6 +307,8 @@ export default function Negocio() {
                       onChange={(e) => setCostosFijos(e.target.value)}
                     />
                   </div>
+
+                   {/*
                   <div className="col-md-6 mb-3">
                     <label>Costos variables</label>
                     <input
@@ -315,6 +318,8 @@ export default function Negocio() {
                       onChange={(e) => setCostosVariables(e.target.value)}
                     />
                   </div>
+
+                  */}
                 </div>
               </div>
 
