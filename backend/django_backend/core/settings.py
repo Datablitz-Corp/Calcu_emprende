@@ -33,6 +33,13 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fastapi','django', os.getenv('APP_HOST'),'django-backend','fastapi-gateway']
 
+PASSWORD_RESET_TIMEOUT = 3600  
+
+### correo
+#AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
+#AWS_SES_FROM_EMAIL = os.getenv('AWS_SES_FROM_EMAIL')  # remitente verificado en SES
+#AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+#AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 # Application definition
 
@@ -61,7 +68,8 @@ INSTALLED_APPS = [
     'producto_servicio',
     'producto_negocio',
     'flujo_caja',
-    'resultados_negocio'
+    'resultados_negocio',
+    'rubros_Damodaran'
 ]
 
 

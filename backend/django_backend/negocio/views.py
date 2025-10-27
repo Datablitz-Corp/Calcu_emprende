@@ -5,9 +5,7 @@ from rest_framework import status
 import traceback
 from django.db import connection, DatabaseError
 import json
-from .funciones import calcular_var_tir_y_guardar, recrear_van_tir
-
-
+from .funciones import calcular_var_tir_y_guardar, recrear_van_tir,calcular_tasa_descuento
 
 
 # crear negocio  (var y tir) backend
@@ -23,7 +21,7 @@ class CrearNegocioCompleto_VAN_TIR(APIView):
             interes = data.get('interes')
             costos = data.get('costos')
             productos = data.get('productos')
-            tasa_descuento = data.get('tasa_descuento', 10.0)
+            #tasa_descuento = data.get('tasa_descuento', 10.0)
 
             
 
@@ -52,6 +50,17 @@ class CrearNegocioCompleto_VAN_TIR(APIView):
 
             if not negocio_id:
                 return Response({"error": "No se pudo crear el negocio"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+            tasa_descuento = calcular_tasa_descuento(
+                rubro=rubro,
+                capital_propio=capital_propio,
+                prestamo=prestamo,
+                interes_prestamo=interes
+            )
+
+
+
 
             # Calcular VAN y TIR y guardar flujos
             productos_convertidos = [

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { jwtDecode } from 'jwt-decode';
+import { Tooltip } from "bootstrap";
+import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import Layout from "./Layout";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 // Colores personalizados
 const colors = {
@@ -150,12 +151,12 @@ const getRandomImage = (images) => {
 
 // Función para obtener los datos del negocio
 const getBusinessData = (businessName) => {
-  const lowerName = businessName.toLowerCase();
-  
+  const lower = (businessName || "").toLowerCase();
+
   for (const [category, data] of Object.entries(businessCategories)) {
     if (category === 'default') continue;
     
-    if (data.keywords.some(keyword => lowerName.includes(keyword))) {
+    if (data.keywords.some((k) => lower.includes(k))) {
       return {
         image: getRandomImage(data.images),
         icon: data.icon,
@@ -163,7 +164,7 @@ const getBusinessData = (businessName) => {
       };
     }
   }
-  
+
   return {
     image: getRandomImage(businessCategories.default.images),
     icon: businessCategories.default.icon,
@@ -172,84 +173,106 @@ const getBusinessData = (businessName) => {
 };
 
 export default function Negocio() {
+  const navigate = useNavigate();
   const [negocios, setNegocios] = useState([]);
-  const [nombre, setNombre] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [error, setError] = useState("");
 
-const [capitalPropio, setCapitalPropio] = useState("");
+  // formulario
+  const [nombre, setNombre] = useState("");
+  const [rubro, setRubro] = useState(null); // guarda el ID de rubro
+  const [productos, setProductos] = useState([]);
+  const [capitalPropio, setCapitalPropio] = useState("");
   const [montoPrestamo, setMontoPrestamo] = useState("");
   const [interesPrestamo, setInteresPrestamo] = useState("");
   const [costosFijos, setCostosFijos] = useState("");
-  const [costosVariables, setCostosVariables] = useState("");
+  const [costosVariables, setCostosVariables] = useState(0); // oculto (si más adelante se usa)
 
-  const [productos, setProductos] = useState([]);
-
-
-
+  // ui
+  const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [modoEdicion, setModoEdicion] = useState(false);
   const [negocioEditando, setNegocioEditando] = useState(null);
 
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [datosPrevios, setDatosPrevios] = useState(null);
-
-
-  ///id de negocio
   const [negocioId, setNegocioId] = useState(null);
+  const [tooltip, setTooltip] = useState(null);
 
+  // rubros (Damodaran)
+  const [rubros, setRubros] = useState([]);
+  const [rubrosLoading, setRubrosLoading] = useState(false);
+  const [rubrosError, setRubrosError] = useState("");
 
-  const navigate = useNavigate();
+  
+  /* ===== tooltips bootstrap ===== */
+  useEffect(() => {
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map((el) => new Tooltip(el));
+  }, []);
 
+  /* ===== cargar negocios ===== */
   useEffect(() => {
     fetchNegocios();
   }, []);
 
   const fetchNegocios = async () => {
-  try {
-    console.log("🔍 Iniciando fetchNegocios...");
-
-    ///const token = localStorage.getItem('token');
-    const token = localStorage.getItem('token');
-
-    const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-    console.log("🔗 API usada:", api);
-    console.log("🔑 Token usado:", token);
-
-
-    const response = await axios.get(`${api}/negocios/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    console.log("✅ Respuesta completa de la API:", response);
-
-    const { data } = response;
-    console.log("📦 Data obtenida:", data);
-
-    const negociosConImagenes = data.map(negocio => {
-      console.log("➡️ Procesando negocio:", negocio);
-      const negocioConImagen = {
-        ...negocio,
-        ...getBusinessData(negocio.Nombre || negocio.nombre_negocio),
-      };
-      console.log("🖼️ Negocio con imagen:", negocioConImagen);
-      return negocioConImagen;
-    });
-
-    setNegocios(negociosConImagenes);
-    console.log("🎯 Negocios finales seteados:", negociosConImagenes);
-
-  } catch (e) {
-    console.error("❌ Error al obtener negocios:", e);
-    setError("No se pudieron cargar los negocios");
-  }
-};
-
-
-  const agregarProducto = () => {
-    setProductos([...productos, 
-      { nombre: "", precio: "", costo: "", cantidad: "" }]);
+    try {
+      const token = localStorage.getItem("token");
+      const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+      const { data } = await axios.get(`${api}/negocios/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const negociosConImagenes = (data || []).map((n) => ({
+        ...n,
+        ...getBusinessData(n.Nombre || n.nombre_negocio),
+      }));
+      setNegocios(negociosConImagenes);
+    } catch (e) {
+      console.error("Error al obtener negocios:", e);
+      setError("No se pudieron cargar los negocios");
+    }
   };
+
+  /* ===== cargar rubros (Damodaran) ===== */
+  useEffect(() => {
+    const fetchRubros = async () => {
+      try {
+        setRubrosLoading(true);
+        const token = localStorage.getItem("token");
+        const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
+        const { data } = await axios.get(`${api}/listar`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { search: "", order: "Nombre_rubro" },
+        });
+        setRubros(Array.isArray(data) ? data : []);
+        setRubrosError("");
+      } catch (e) {
+        console.error("Error al cargar rubros:", e);
+        setRubrosError("No se pudieron cargar los rubros");
+      } finally {
+        setRubrosLoading(false);
+      }
+    };
+    fetchRubros();
+  }, []);
+
+  // Debug: ver lo que llega en rubros
+  useEffect(() => {
+    console.log("Rubros recibidos:", (rubros || []).slice(0, 3));
+  }, [rubros]);
+
+  /* ===== util select rubros ===== */
+  const toRubroOption = (r) => {
+    if (!r) return null;
+    const id = Number(r.ID_rubro);
+    const nombre = r.Nombre_rubro ?? "";
+    const categoria = r.Categoria_base ?? "";
+    const label = [nombre, categoria].filter(Boolean).join(" — ");
+    return { id, label };
+  };
+
+  /* ===== productos ===== */
+  const agregarProducto = () => setProductos([...productos, { nombre: "", precio: "", costo: "", cantidad: "" }]);
 
   const actualizarProducto = (index, campo, valor) => {
     const nuevos = [...productos];
@@ -257,10 +280,9 @@ const [capitalPropio, setCapitalPropio] = useState("");
     setProductos(nuevos);
   };
 
-  const eliminarProducto = (index) => {
-    setProductos(productos.filter((_, i) => i !== index));
-  };
+  const eliminarProducto = (index) => setProductos(productos.filter((_, i) => i !== index));
 
+  /* ===== validación ===== */
   const validarFormulario = () => {
     if (!nombre.trim()) {
       setError("El nombre del negocio es requerido");
@@ -270,6 +292,10 @@ const [capitalPropio, setCapitalPropio] = useState("");
       setError("El nombre no puede exceder los 50 caracteres");
       return false;
     }
+    if (!rubro) {
+      setError("Debes seleccionar un rubro (Damodaran)");
+      return false;
+    }
     if (productos.length === 0) {
       setError("Debe agregar al menos un producto o servicio");
       return false;
@@ -277,28 +303,28 @@ const [capitalPropio, setCapitalPropio] = useState("");
     return true;
   };
 
+  /* ===== crear negocio ===== */
   const crearNegocio = async () => {
     if (!validarFormulario()) return;
-
     try {
-      const token = localStorage.getItem('token');
-      const decodedToken = jwtDecode(token);
-      
-      const idUsuario = decodedToken.user_id;
+      const token = localStorage.getItem("token");
+      const decoded = jwtDecode(token);
+      const idUsuario = decoded.user_id;
 
       const costos = [
         { tipo: "costosFijos", monto: Number(costosFijos) || 0 },
-        { tipo: "costosVariables", monto: Number(costosVariables) || 0 },
+        { tipo: "costosVariables", monto: 0 },
       ];
 
       const payload = {
         id_usuario: idUsuario,
         nombre_negocio: nombre,
+        rubro: rubro ?? null, // *** ID_rubro
         capital_propio: parseFloat(capitalPropio) || 0,
         prestamo: parseFloat(montoPrestamo) || 0,
         interes: parseFloat(interesPrestamo) || 0,
-        costos: costos,
-        productos: productos.map(p => ({
+        costos,
+        productos: productos.map((p) => ({
           nombre: p.nombre,
           precv: parseFloat(p.precio) || 0,
           costov: parseFloat(p.costo) || 0,
@@ -308,51 +334,43 @@ const [capitalPropio, setCapitalPropio] = useState("");
       };
 
       const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-      await axios.post(`${api}/negocios/`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(`${api}/negocios/`, payload, { headers: { Authorization: `Bearer ${token}` } });
 
       setSuccess("Negocio creado exitosamente");
       setTimeout(() => {
         cerrarModal();
         setSuccess("");
         fetchNegocios();
-      }, 1500);
+      }, 1200);
     } catch (e) {
       console.error("Error al crear negocio:", e);
       setError("Error al crear el negocio. Intente nuevamente.");
     }
   };
 
-
+  /* ===== actualizar negocio ===== */
   const confirmarActualizacion = () => {
     setMostrarConfirmacion(false);
     actualizarNegocio();
   };
+  const cancelarConfirmacion = () => setMostrarConfirmacion(false);
 
-  const cancelarConfirmacion = () => {
-    setMostrarConfirmacion(false);
-  };
-
-
-  //// editar negocio
   const actualizarNegocio = async () => {
     if (!validarFormulario()) return;
-
     try {
-      const token = localStorage.getItem('token');
-      const decodedToken = jwtDecode(token);
-      const idUsuario = decodedToken.user_id;
+      const token = localStorage.getItem("token");
+      const decoded = jwtDecode(token);
+      const idUsuario = decoded.user_id;
 
       const costos = [
         { tipo: "costosFijos", monto: parseFloat(costosFijos) || 0 },
-        { tipo: "costosVariables", monto: parseFloat(costosVariables) || 0 },
+        { tipo: "costosVariables", monto: 0 },
       ];
 
       const payload = {
         id_usuario: idUsuario,
         nombre_negocio: nombre,
+        rubro: rubro ?? null, // *** ID_rubro
         capital_propio: parseFloat(capitalPropio) || 0,
         prestamo: parseFloat(montoPrestamo) || 0,
         interes: parseFloat(interesPrestamo) || 0,
@@ -367,27 +385,14 @@ const [capitalPropio, setCapitalPropio] = useState("");
 
       const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
-        // traemos el ID normalizado
-
-      console.log("id_negocioact",negocioId)
-
-
       if (!negocioId) {
         setError("No se encontró el ID del negocio a actualizar");
         return;
       }
 
-      
-      const response = await axios.put(
-        `${api}/negocio/${negocioId}/actualizar`,
-
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.put(`${api}/negocio/${negocioId}/actualizar`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (response.status === 200) {
         setSuccess("Negocio actualizado con éxito");
@@ -395,42 +400,37 @@ const [capitalPropio, setCapitalPropio] = useState("");
           cerrarModal();
           setSuccess("");
           fetchNegocios();
-        }, 1500);
+        }, 1200);
       } else {
         setError("Ocurrió un problema al actualizar el negocio");
       }
-    } catch (error) {
-      console.error("Error al actualizar:", error);
+    } catch (e) {
+      console.error("Error al actualizar:", e);
       setError("Ocurrió un error al intentar actualizar el negocio");
     }
   };
 
+  /* ===== eliminar negocio ===== */
   const eliminarNegocio = async (id) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
-
-      await axios.delete(`${api}/eliminar-negocio/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      await axios.delete(`${api}/eliminar-negocio/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess("Negocio eliminado correctamente");
       setTimeout(() => {
         setSuccess("");
         fetchNegocios();
-      }, 1500);
+      }, 1200);
     } catch (e) {
       console.error(e);
       setError("Error al eliminar negocio");
     }
   };
 
+  /* ===== abrir modal edición (carga detalle) ===== */
   const abrirModalEditar = async (negocio) => {
-
-    console.log(negocio)
-    console.log("id del negocio selecionado",negocio.ID_negocio)
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const api = process.env.REACT_APP_BACKEND_URL || "http://localhost:9000";
 
       const response = await axios.get(`${api}/detalle-negocio/${negocio.ID_negocio}`, {
@@ -439,26 +439,23 @@ const [capitalPropio, setCapitalPropio] = useState("");
 
       const detalle = response.data;
 
-
-
       setModoEdicion(true);
-
-      setNegocioId(negocio.ID_negocio); // guardamos el id negocio
+      setNegocioId(negocio.ID_negocio);
 
       setNombre(detalle.Nombre || detalle.nombre_negocio || "");
       setCapitalPropio(detalle.capital_propio || "");
       setMontoPrestamo(detalle.prestamo || detalle.monto_prestamo || "");
       setInteresPrestamo(detalle.interes || detalle.interes_prestamo || "");
       setCostosFijos(detalle.costos_fijos || "");
-      setCostosVariables(detalle.costos_variables || "");
+      setCostosVariables(0);
+
+      // *** rubro desde detalle (ID)
+      setRubro(detalle.ID_rubro ?? detalle.rubro ?? null);
 
       let productosFormateados = [];
       try {
-        const raw = typeof detalle.productos === "string"
-          ? JSON.parse(detalle.productos)
-          : detalle.productos || [];
-
-        productosFormateados = raw.map(p => ({
+        const raw = typeof detalle.productos === "string" ? JSON.parse(detalle.productos) : detalle.productos || [];
+        productosFormateados = raw.map((p) => ({
           nombre: p.nombre || p.nombre_producto_servicio || "",
           precio: p.precv || p.precio_venta || 0,
           costo: p.costov || p.costo_unitario || 0,
@@ -471,56 +468,56 @@ const [capitalPropio, setCapitalPropio] = useState("");
       setProductos(productosFormateados);
       setError("");
       setShowModal(true);
-
     } catch (error) {
       console.error("Error al obtener detalle del negocio:", error);
       setError("No se pudo cargar el negocio para edición");
     }
   };
 
+  /* ===== cerrar modal ===== */
   const cerrarModal = () => {
     setShowModal(false);
     setModoEdicion(false);
     setNegocioEditando(null);
+    setRubro(null);
     setNombre("");
     setError("");
     setCapitalPropio("");
     setMontoPrestamo("");
     setInteresPrestamo("");
     setCostosFijos("");
-    setCostosVariables("");
+    setCostosVariables(0);
     setProductos([]);
   };
 
+  /* =========================
+     Render
+     ========================= */
   return (
     <Layout>
       <div className="container mt-4" style={{ backgroundColor: colors.background }}>
-        {/* Encabezado con botón destacado */}
+        {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <motion.h2 
+          <motion.h2
             className="fw-bold mb-0"
-            style={{ 
-              color: colors.primary,
-              fontSize: '2rem',
-              textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
-            }}
+            style={{ color: colors.primary, fontSize: "2rem", textShadow: "1px 1px 2px rgba(0,0,0,0.1)" }}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
             Mis Negocios
           </motion.h2>
-          
+
           <motion.button
             className="btn py-3 px-4"
-            style={{ 
+            style={{
               backgroundColor: colors.primary,
               color: colors.lightText,
-              border: 'none',
-              fontSize: '1.1rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              boxShadow: '0 4px 6px rgba(42, 157, 143, 0.3)'
+              border: "none",
+              fontSize: "1.1rem",
+              fontWeight: "600",
+              borderRadius: "10px",
+              boxShadow: "0 4px 6px rgba(42, 157, 143, 0.3)",
             }}
             onClick={() => {
               setShowModal(true);
@@ -528,12 +525,9 @@ const [capitalPropio, setCapitalPropio] = useState("");
               setError("");
               setNombre("");
               setSuccess("");
+              setRubro(null);
             }}
-            whileHover={{ 
-              scale: 1.05, 
-              backgroundColor: colors.secondary,
-              boxShadow: '0 6px 8px rgba(42, 157, 143, 0.4)'
-            }}
+            whileHover={{ scale: 1.05, backgroundColor: colors.secondary, boxShadow: "0 6px 8px rgba(42, 157, 143, 0.4)" }}
             whileTap={{ scale: 0.98 }}
           >
             <i className="bi bi-plus-circle-fill me-2"></i>Agregar Negocio
@@ -541,169 +535,143 @@ const [capitalPropio, setCapitalPropio] = useState("");
         </div>
 
         {success && (
-          <motion.div 
-            className="alert alert-success"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
+          <motion.div className="alert alert-success" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             {success}
           </motion.div>
         )}
 
         {negocios.length === 0 ? (
-          <motion.div 
-            className="text-center py-5"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div style={{
-              width: '100%',
-              maxWidth: '300px',
-              height: '200px',
-              margin: '0 auto',
-              backgroundColor: colors.accent,
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '5rem'
-            }}>
+          <motion.div className="text-center py-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "300px",
+                height: "200px",
+                margin: "0 auto",
+                backgroundColor: colors.accent,
+                borderRadius: "12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "5rem",
+              }}
+            >
               {businessCategories.default.icon}
             </div>
-            <h4 className="mt-3" style={{ color: colors.text }}>No tienes negocios registrados</h4>
+            <h4 className="mt-3" style={{ color: colors.text }}>
+              No tienes negocios registrados
+            </h4>
             <p style={{ color: colors.text }}>Comienza agregando tu primer negocio</p>
           </motion.div>
         ) : (
           <div className="row g-4">
             {negocios.map((n, index) => (
-              <motion.div 
-                key={n.ID_negocio} 
+              <motion.div
+                key={n.ID_negocio}
                 className="col-md-6 col-lg-4"
                 variants={cardAnimation}
                 initial="hidden"
                 animate="visible"
                 transition={{ delay: index * 0.1 }}
               >
-                <motion.div 
+                <motion.div
                   className="card h-100"
-                  style={{ 
+                  style={{
                     backgroundColor: colors.accent2,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    overflow: 'hidden'
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)", // FIX comillas
+                    overflow: "hidden",
                   }}
-                  whileHover={{ 
-                    y: -5,
-                    boxShadow: '0 8px 20px rgba(42, 157, 143, 0.15)'
-                  }}
+                  whileHover={{ y: -5, boxShadow: "0 8px 20px rgba(42, 157, 143, 0.15)" }}
                 >
-                  <div className="card-body" style={{ padding: '1.5rem' }}>
-                    <h4 
+                  <div className="card-body" style={{ padding: "1.5rem" }}>
+                    <h4
                       className="card-title mb-3 text-center"
-                      style={{ 
+                      style={{
                         color: colors.primary,
-                        fontWeight: '600',
-                        minHeight: '60px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        fontWeight: "600",
+                        minHeight: "60px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       {n.Nombre || n.nombre_negocio}
                     </h4>
-                    
-                    <div className="card-img-top" style={{ 
-                      height: '180px', 
-                      backgroundColor: colors.accent,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '20px',
-                      position: 'relative',
-                      borderRadius: '8px',
-                      marginBottom: '1.5rem'
-                    }}>
-                      <img 
-                        src={n.image} 
-                        alt={n.Nombre || n.nombre_negocio} 
-                        style={{ 
-                          width: '100%', 
-                          height: '100%',
-                          objectFit: 'cover',
-                          filter: 'drop-shadow(2px 4px 4px rgba(0,0,0,0.1))'
-                        }}
+
+                    <div
+                      className="card-img-top"
+                      style={{
+                        height: "180px",
+                        backgroundColor: colors.accent,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "20px",
+                        position: "relative",
+                        borderRadius: "8px",
+                        marginBottom: "1.5rem",
+                      }}
+                    >
+                      <img
+                        src={n.image}
+                        alt={n.Nombre || n.nombre_negocio}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", filter: "drop-shadow(2px 4px 4px rgba(0,0,0,0.1))" }}
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          const fallback = document.createElement('div');
-                          fallback.style.fontSize = '5rem';
-                          fallback.style.textAlign = 'center';
-                          fallback.style.width = '100%';
+                          e.target.style.display = "none";
+                          const fallback = document.createElement("div");
+                          fallback.style.fontSize = "5rem";
+                          fallback.style.textAlign = "center";
+                          fallback.style.width = "100%";
                           fallback.textContent = n.icon;
                           e.target.parentNode.appendChild(fallback);
                         }}
                       />
                     </div>
-                    
+
                     <div className="mt-3">
                       <motion.button
                         className="btn w-100 mb-3 py-2"
-                        style={{ 
-                          backgroundColor: colors.primary,
-                          color: colors.lightText,
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: '500'
-                        }}
+                        style={{ backgroundColor: colors.primary, color: colors.lightText, border: "none", borderRadius: "8px", fontWeight: "500" }}
                         onClick={() => navigate(`/detalle/${n.ID_negocio}`)}
-                        whileHover={{ 
-                          scale: 1.02, 
-                          backgroundColor: colors.secondary
-                        }}
+                        whileHover={{ scale: 1.02, backgroundColor: colors.secondary }}
                         whileTap={{ scale: 0.98 }}
                       >
                         <i className="bi bi-eye-fill me-2"></i> Ver Detalle
                       </motion.button>
-                      
+
                       <div className="d-flex gap-2">
                         <motion.button
                           className="btn flex-grow-1 py-2"
-                          style={{ 
+                          style={{
                             backgroundColor: colors.accent2,
                             color: colors.primary,
                             border: `2px solid ${colors.primary}`,
-                            borderRadius: '8px',
-                            fontWeight: '500'
+                            borderRadius: "8px",
+                            fontWeight: "500",
                           }}
                           onClick={() => abrirModalEditar(n)}
-                          whileHover={{ 
-                            scale: 1.02,
-                            backgroundColor: colors.accent
-                          }}
+                          whileHover={{ scale: 1.02, backgroundColor: colors.accent }}
                           whileTap={{ scale: 0.98 }}
                         >
                           <i className="bi bi-pencil-square me-2"></i> Editar
                         </motion.button>
                         <motion.button
                           className="btn py-2 px-3"
-                          style={{ 
+                          style={{
                             backgroundColor: colors.accent2,
                             color: colors.error,
                             border: `2px solid ${colors.error}`,
-                            borderRadius: '8px',
-                            fontWeight: '500'
+                            borderRadius: "8px",
+                            fontWeight: "500",
                           }}
                           onClick={() => {
                             if (window.confirm("¿Estás seguro de que deseas eliminar este negocio?")) {
                               eliminarNegocio(n.ID_negocio);
                             }
                           }}
-                          whileHover={{ 
-                            scale: 1.02,
-                            backgroundColor: '#ffebee'
-                          }}
+                          whileHover={{ scale: 1.02, backgroundColor: "#ffebee" }}
                           whileTap={{ scale: 0.98 }}
                         >
                           <i className="bi bi-trash-fill"></i>
@@ -717,44 +685,24 @@ const [capitalPropio, setCapitalPropio] = useState("");
           </div>
         )}
 
-        {/* Modal para agregar/editar negocio */}
+        {/* ========== Modal agregar/editar ========== */}
         {showModal && (
-          <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <motion.div 
-              className="modal-dialog modal-lg modal-dialog-centered"
-              initial="hidden"
-              animate="visible"
-              variants={modalAnimation}
-            >
-              <div className="modal-content" style={{ border: 'none', borderRadius: '12px' }}>
-                <div className="modal-header" style={{ 
-                  backgroundColor: colors.primary,
-                  color: colors.lightText,
-                  borderTopLeftRadius: '12px',
-                  borderTopRightRadius: '12px'
-                }}>
-                  <h5 className="modal-title">
-                    {modoEdicion ? 'Editar Negocio' : 'Agregar Nuevo Negocio'}
-                  </h5>
-                  <button 
-                    type="button" 
-                    className="btn-close btn-close-white" 
-                    onClick={cerrarModal}
-                  ></button>
+          <div className="modal" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <motion.div className="modal-dialog modal-lg modal-dialog-centered" initial="hidden" animate="visible" variants={modalAnimation}>
+              <div className="modal-content" style={{ border: "none", borderRadius: "12px" }}>
+                <div
+                  className="modal-header"
+                  style={{ backgroundColor: colors.primary, color: colors.lightText, borderTopLeftRadius: "12px", borderTopRightRadius: "12px" }}
+                >
+                  <h5 className="modal-title">{modoEdicion ? "Editar Negocio" : "Agregar Nuevo Negocio"}</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={cerrarModal}></button>
                 </div>
-                
-                <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                  {error && (
-                    <div className="alert alert-danger">
-                      {error}
-                    </div>
-                  )}
-                  {success && (
-                    <div className="alert alert-success">
-                      {success}
-                    </div>
-                  )}
-                  
+
+                <div className="modal-body" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                  {error && <div className="alert alert-danger">{error}</div>}
+                  {success && <div className="alert alert-success">{success}</div>}
+
+                  {/* Nombre */}
                   <div className="mb-4">
                     <label htmlFor="nombreNegocio" className="form-label fw-bold" style={{ color: colors.text }}>
                       Nombre del Negocio
@@ -765,24 +713,56 @@ const [capitalPropio, setCapitalPropio] = useState("");
                       id="nombreNegocio"
                       value={nombre}
                       onChange={(e) => setNombre(e.target.value)}
-                      style={{
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: '8px',
-                        padding: '10px'
-                      }}
+                      style={{ border: `1px solid ${colors.border}`, borderRadius: "8px", padding: "10px" }}
                       placeholder="Ej: Cafetería Central"
                     />
                     <small className="text-muted">Máximo 50 caracteres</small>
                   </div>
-                  
+
+                  {/* Rubro (Damodaran) */}
+                  <div className="mb-3">
+                    <label className="form-label">Rubro (Damodaran)</label>
+                    <select
+                      className="form-select"
+                      value={rubro ?? ""}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setRubro(v === "" ? null : Number(v));
+                      }}
+                      disabled={rubrosLoading}
+                    >
+                      <option key="__none__" value="">
+                        Seleccione un rubro
+                      </option>
+                      {rubros
+                        .map(toRubroOption)
+                        .filter(Boolean)
+                        .map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                    </select>
+
+                    {rubrosError && <div className="alert alert-warning mt-2 py-2">{rubrosError}</div>}
+                  </div>
+
+                  {/* Información financiera */}
                   <div className="mb-4">
                     <h6 className="fw-bold mb-3" style={{ color: colors.text }}>
                       Información Financiera
                     </h6>
                     <div className="row g-3">
                       <div className="col-md-6">
-                        <label className="form-label" style={{ color: colors.text }}>
+                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
                           Capital propio
+                          <i
+                            className="bi bi-exclamation-circle ms-2"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="Tus ahorros, es decir tu dinero propio el cual no debes devolverlo ni pagar un interés por él."
+                            style={{ cursor: "pointer", color: "#0d6efd" }}
+                          ></i>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text">$</span>
@@ -794,9 +774,17 @@ const [capitalPropio, setCapitalPropio] = useState("");
                           />
                         </div>
                       </div>
+
                       <div className="col-md-6">
-                        <label className="form-label" style={{ color: colors.text }}>
+                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
                           Monto préstamo
+                          <i
+                            className="bi bi-exclamation-circle ms-2"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="El dinero que te prestó el banco u otra persona, la que le debes pagar con un interés."
+                            style={{ cursor: "pointer", color: "#0d6efd" }}
+                          ></i>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text">$</span>
@@ -808,9 +796,17 @@ const [capitalPropio, setCapitalPropio] = useState("");
                           />
                         </div>
                       </div>
+
                       <div className="col-md-6">
-                        <label className="form-label" style={{ color: colors.text }}>
+                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
                           Interés del préstamo (%)
+                          <i
+                            className="bi bi-exclamation-circle ms-2"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="El porcentaje del interés que deberás pagar. Ejm: 10% adicional del préstamo."
+                            style={{ cursor: "pointer", color: "#0d6efd" }}
+                          ></i>
                         </label>
                         <div className="input-group">
                           <input
@@ -823,9 +819,17 @@ const [capitalPropio, setCapitalPropio] = useState("");
                           <span className="input-group-text">%</span>
                         </div>
                       </div>
+
                       <div className="col-md-6">
-                        <label className="form-label" style={{ color: colors.text }}>
+                        <label className="form-label d-flex align-items-center" style={{ color: colors.text }}>
                           Costos fijos mensuales
+                          <i
+                            className="bi bi-exclamation-circle ms-2"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="Los costos mensuales de tu negocio. Ejm: alquiler, sueldos, luz, agua, internet."
+                            style={{ cursor: "pointer", color: "#0d6efd" }}
+                          ></i>
                         </label>
                         <div className="input-group">
                           <span className="input-group-text">$</span>
@@ -837,24 +841,19 @@ const [capitalPropio, setCapitalPropio] = useState("");
                           />
                         </div>
                       </div>
-                      <div className="col-md-6">
-                        <label className="form-label" style={{ color: colors.text }}>
-                          Costos variables (% de ventas)
-                        </label>
-                        <div className="input-group">
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="form-control"
-                            value={costosVariables}
-                            onChange={(e) => setCostosVariables(e.target.value)}
-                          />
-                          <span className="input-group-text">%</span>
-                        </div>
-                      </div>
+
+                      {/* Costos variables ocultos (por ahora) */}
+                      <input
+                        type="hidden"
+                        step="0.01"
+                        className="form-control"
+                        value={costosVariables}
+                        onChange={(e) => setCostosVariables(e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                      />
                     </div>
                   </div>
-                  
+
+                  {/* Productos/Servicios */}
                   <div className="mb-4">
                     <div className="d-flex justify-content-between align-items-center mb-3">
                       <h6 className="fw-bold mb-0" style={{ color: colors.text }}>
@@ -863,24 +862,23 @@ const [capitalPropio, setCapitalPropio] = useState("");
                       <motion.button
                         type="button"
                         className="btn btn-sm"
-                        style={{ 
-                          backgroundColor: colors.primary,
-                          color: colors.lightText
-                        }}
+                        style={{ backgroundColor: colors.primary, color: colors.lightText }}
                         onClick={agregarProducto}
-                        whileHover={{ 
-                          scale: 1.05,
-                          backgroundColor: colors.secondary
-                        }}
+                        whileHover={{ scale: 1.05, backgroundColor: colors.secondary }}
                         whileTap={{ scale: 0.95 }}
                       >
                         <i className="bi bi-plus-circle me-1"></i> Agregar
                       </motion.button>
                     </div>
-                    
+
+                    <p style={{ fontSize: "0.9rem", color: "gray" }}>
+                      Recuerda agregar todos tus productos o servicios para una mejor evaluación. Ejm: en mi negocio se vende arroz con huevo, coca cola y
+                      el combo 1 que se compone de arroz con huevo y coca cola. Por lo tanto, se deben agregar 3 productos.
+                    </p>
+
                     {productos.map((p, index) => (
-                      <motion.div 
-                        key={index} 
+                      <motion.div
+                        key={index}
                         className="border p-3 mb-3 rounded"
                         style={{ backgroundColor: colors.accent }}
                         initial={{ opacity: 0, y: 10 }}
@@ -901,6 +899,7 @@ const [capitalPropio, setCapitalPropio] = useState("");
                               placeholder="Nombre del producto"
                             />
                           </div>
+
                           <div className="col-md-6">
                             <label className="form-label" style={{ color: colors.text }}>
                               Precio de venta
@@ -916,9 +915,17 @@ const [capitalPropio, setCapitalPropio] = useState("");
                               />
                             </div>
                           </div>
-                          <div className="col-md-6">
+
+                          <div className="col-md-6" style={{ position: "relative" }}>
                             <label className="form-label" style={{ color: colors.text }}>
-                              Costo unitario
+                              Costo unitario{" "}
+                              <i
+                                className="bi bi-exclamation-circle ms-1"
+                                style={{ cursor: "pointer", color: tooltip === `costo-${index}` ? colors.primary : "gray" }}
+                                onMouseEnter={() => setTooltip(`costo-${index}`)}
+                                onMouseLeave={() => setTooltip(null)}
+                                onClick={() => setTooltip(tooltip === `click-costo-${index}` ? null : `click-costo-${index}`)}
+                              ></i>
                             </label>
                             <div className="input-group">
                               <span className="input-group-text">$</span>
@@ -930,10 +937,40 @@ const [capitalPropio, setCapitalPropio] = useState("");
                                 onChange={(e) => actualizarProducto(index, "costo", e.target.value)}
                               />
                             </div>
+
+                            {tooltip === `click-costo-${index}` && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "100%",
+                                  left: "0",
+                                  zIndex: 10,
+                                  background: "#fff",
+                                  border: "1px solid #ddd",
+                                  borderRadius: "8px",
+                                  padding: "8px",
+                                  width: "100%",
+                                  fontSize: "0.85rem",
+                                  marginTop: "4px",
+                                }}
+                              >
+                                Es el costo de cada uno de tus productos. Ejemplo 1: el paquete de gaseosas está S/10 y vienen 10 gaseosas, entonces el costo
+                                unitario es de S/1. Ejemplo 2: para preparar arroz con huevo necesito 30 gr de arroz (S/0.08) y un huevo (S/0.85). El costo
+                                unitario sería de S/0.93, la suma de ambos.
+                              </div>
+                            )}
                           </div>
-                          <div className="col-md-6">
+
+                          <div className="col-md-6" style={{ position: "relative" }}>
                             <label className="form-label" style={{ color: colors.text }}>
-                              Cantidad esperada
+                              Cantidad esperada{" "}
+                              <i
+                                className="bi bi-exclamation-circle ms-1"
+                                style={{ cursor: "pointer", color: tooltip === `cant-${index}` ? colors.primary : "gray" }}
+                                onMouseEnter={() => setTooltip(`cant-${index}`)}
+                                onMouseLeave={() => setTooltip(null)}
+                                onClick={() => setTooltip(tooltip === `click-cant-${index}` ? null : `click-cant-${index}`)}
+                              ></i>
                             </label>
                             <input
                               type="number"
@@ -941,21 +978,35 @@ const [capitalPropio, setCapitalPropio] = useState("");
                               value={p.cantidad}
                               onChange={(e) => actualizarProducto(index, "cantidad", e.target.value)}
                             />
+
+                            {tooltip === `click-cant-${index}` && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "100%",
+                                  left: "0",
+                                  zIndex: 10,
+                                  background: "#fff",
+                                  border: "1px solid #ddd",
+                                  borderRadius: "8px",
+                                  padding: "8px",
+                                  width: "100%",
+                                  fontSize: "0.85rem",
+                                  marginTop: "4px",
+                                }}
+                              >
+                                Es la cantidad que esperas vender al mes de tu producto.
+                              </div>
+                            )}
                           </div>
+
                           <div className="col-12 text-end">
                             <motion.button
                               className="btn btn-sm"
-                              style={{ 
-                                backgroundColor: '#ffebee',
-                                color: colors.error,
-                                borderColor: colors.error
-                              }}
+                              style={{ backgroundColor: "#ffebee", color: colors.error, borderColor: colors.error }}
                               type="button"
                               onClick={() => eliminarProducto(index)}
-                              whileHover={{ 
-                                scale: 1.05,
-                                backgroundColor: '#ffcdd2'
-                              }}
+                              whileHover={{ scale: 1.05, backgroundColor: "#ffcdd2" }}
                               whileTap={{ scale: 0.95 }}
                             >
                               <i className="bi bi-trash me-1"></i> Eliminar
@@ -966,38 +1017,25 @@ const [capitalPropio, setCapitalPropio] = useState("");
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="modal-footer" style={{ borderTopColor: colors.border }}>
                   <motion.button
                     type="button"
                     className="btn"
-                    style={{ 
-                      backgroundColor: colors.accent2,
-                      color: colors.text,
-                      border: `1px solid ${colors.border}`
-                    }}
+                    style={{ backgroundColor: colors.accent2, color: colors.text, border: `1px solid ${colors.border}` }}
                     onClick={cerrarModal}
-                    whileHover={{ 
-                      scale: 1.02,
-                      backgroundColor: colors.accent
-                    }}
+                    whileHover={{ scale: 1.02, backgroundColor: colors.accent }}
                     whileTap={{ scale: 0.98 }}
                   >
                     Cancelar
                   </motion.button>
+
                   <motion.button
                     type="button"
                     className="btn"
-                    style={{ 
-                      backgroundColor: colors.primary,
-                      color: colors.lightText,
-                      border: 'none'
-                    }}
+                    style={{ backgroundColor: colors.primary, color: colors.lightText, border: "none" }}
                     onClick={modoEdicion ? actualizarNegocio : crearNegocio}
-                    whileHover={{ 
-                      scale: 1.02,
-                      backgroundColor: colors.secondary
-                    }}
+                    whileHover={{ scale: 1.02, backgroundColor: colors.secondary }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {modoEdicion ? (
@@ -1016,15 +1054,10 @@ const [capitalPropio, setCapitalPropio] = useState("");
           </div>
         )}
 
-        {/* Modal de confirmación para actualización */}
+        {/* Confirmación (opcional si lo usas) */}
         {mostrarConfirmacion && (
-          <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <motion.div 
-              className="modal-dialog modal-dialog-centered"
-              initial="hidden"
-              animate="visible"
-              variants={modalAnimation}
-            >
+          <div className="modal" style={{ display: "block", backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <motion.div className="modal-dialog modal-dialog-centered" initial="hidden" animate="visible" variants={modalAnimation}>
               <div className="modal-content">
                 <div className="modal-header" style={{ backgroundColor: colors.primary, color: colors.lightText }}>
                   <h5 className="modal-title">Confirmar Actualización</h5>
@@ -1034,26 +1067,20 @@ const [capitalPropio, setCapitalPropio] = useState("");
                   {datosPrevios && (
                     <div className="alert alert-warning">
                       <small>
-                        <strong>Datos actuales:</strong><br />
-                        Nombre: {datosPrevios.nombre_negocio}<br />
+                        <strong>Datos actuales:</strong>
+                        <br />
+                        Nombre: {datosPrevios.nombre_negocio}
+                        <br />
                         Productos: {datosPrevios.productos?.length || 0}
                       </small>
                     </div>
                   )}
                 </div>
                 <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={cancelarConfirmacion}
-                  >
+                  <button type="button" className="btn btn-secondary" onClick={cancelarConfirmacion}>
                     Cancelar
                   </button>
-                  <button 
-                    type="button" 
-                    className="btn btn-primary" 
-                    onClick={confirmarActualizacion}
-                  >
+                  <button type="button" className="btn btn-primary" onClick={confirmarActualizacion}>
                     Confirmar
                   </button>
                 </div>

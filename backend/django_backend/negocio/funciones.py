@@ -139,10 +139,9 @@ def recrear_van_tir(
 
 
 
+### CALCULO DE la Tasa de descuento
 
 def calcular_tasa_descuento(rubro, capital_propio, prestamo, interes_prestamo):
-
-
     # Caso: solo préstamo
     if prestamo and not capital_propio:
         return float(interes_prestamo)
